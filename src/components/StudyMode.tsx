@@ -1,0 +1,1 @@
+// This file is being removed - StudyMode functionality has been integrated into individual study pages
