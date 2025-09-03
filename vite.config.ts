@@ -72,4 +72,5 @@
       port: 3000,
       open: true,
     },
+    base: 'https://cognara.netlify.app/',
   });

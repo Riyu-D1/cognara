@@ -44,7 +44,7 @@ export const signInWithOAuth = async (provider: 'google' | 'github' | 'discord')
     console.log('Current URL origin:', window.location.origin)
     
     // Use the production URL for redirects
-    const redirectUrl = 'https://studyflow.figma.site'
+    const redirectUrl = 'https://cognara.netlify.app'
     
     // Do not forget to complete setup at https://supabase.com/docs/guides/auth/social-login/auth-google
     const { data, error } = await supabase.auth.signInWithOAuth({
