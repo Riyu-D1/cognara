@@ -30,8 +30,9 @@ export function createNavigationHelpers(
       // Reset both flags to ensure user sees the landing page and needs to click "Try App" again
       setHasAccessedApp(false);
       setCurrentScreen('landing');
-      // Force a page reload to clear any cached states
-      window.location.reload();
+      // Clear any cached states without a full page reload
+      sessionStorage.clear();
+      localStorage.clear();
     } catch (error) {
       console.log('Logout error:', error);
     }
