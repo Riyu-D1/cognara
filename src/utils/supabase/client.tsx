@@ -43,8 +43,8 @@ export const signInWithOAuth = async (provider: 'google' | 'github' | 'discord')
     console.log(`Initiating ${provider} OAuth sign in...`)
     console.log('Current URL origin:', window.location.origin)
     
-    // Use the production URL for redirects
-    const redirectUrl = 'https://cognara.netlify.app'
+    // Use the current URL for redirects
+    const redirectUrl = window.location.origin
     
     // Do not forget to complete setup at https://supabase.com/docs/guides/auth/social-login/auth-google
     const { data, error } = await supabase.auth.signInWithOAuth({
