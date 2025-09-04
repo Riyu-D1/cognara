@@ -43,8 +43,8 @@ export const signInWithOAuth = async (provider: 'google' | 'github' | 'discord')
     console.log(`Initiating ${provider} OAuth sign in...`)
     console.log('Current URL origin:', window.location.origin)
     
-    // Use dynamic URL detection
-    const redirectUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cognara.vercel.app'
+    // Use localhost for development
+    const redirectUrl = 'http://localhost:3000'
     
     // Do not forget to complete setup at https://supabase.com/docs/guides/auth/social-login/auth-google
     const { data, error } = await supabase.auth.signInWithOAuth({
