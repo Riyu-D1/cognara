@@ -27,8 +27,11 @@ export function createNavigationHelpers(
   const handleLogout = async () => {
     try {
       await signOut();
+      // Reset both flags to ensure user sees the landing page and needs to click "Try App" again
       setHasAccessedApp(false);
       setCurrentScreen('landing');
+      // Force a page reload to clear any cached states
+      window.location.reload();
     } catch (error) {
       console.log('Logout error:', error);
     }
