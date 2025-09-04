@@ -1,0 +1,33 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+[build]
+  command = "npm run build"
+  publish = "build"
+
+# Redirect www to non-www
+[[redirects]]
+  from = "https://www.cognara.netlify.app/*"
+  to = "https://cognara.netlify.app/:splat"
+  status = 301
+  force = true
+
+# Handle HTTP to HTTPS
+[[redirects]]
+  from = "http://*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+# SPA redirect
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

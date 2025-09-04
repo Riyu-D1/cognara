@@ -72,5 +72,5 @@
       port: 3000,
       open: true,
     },
-    base: '/',
+    base: 'https://cognara.vercel.app/',
   });
