@@ -53,7 +53,7 @@
     },
     build: {
       target: 'esnext',
-      outDir: 'build',
+      outDir: 'dist',
       assetsDir: 'assets',
       rollupOptions: {
         output: {
@@ -72,5 +72,5 @@
       port: 3000,
       open: true,
     },
-    base: 'https://cognara.netlify.app/',
+    base: '/',
   });
