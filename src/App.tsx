@@ -35,10 +35,6 @@ function AppContent() {
     );
   }
 
-  if (!user && !BYPASS_AUTH) {
-    return <AuthPage />;
-  }
-
   return (
     <AppRouter 
       currentScreen={currentScreen}
@@ -46,6 +42,7 @@ function AppContent() {
       hasAccessedApp={hasAccessedApp}
       user={user}
       navigationHelpers={navigationHelpers}
+      showAuth={!user && !BYPASS_AUTH}
     />
   );
 }

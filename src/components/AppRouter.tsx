@@ -2,6 +2,7 @@ import React from 'react';
 import { SettingsProvider } from './SettingsContext';
 import { LandingPage } from './LandingPage';
 import { AboutPage } from './AboutPage';
+import { AuthPage } from './AuthPage';
 import { Dashboard } from './Dashboard';
 import { NotesPage } from './NotesPage';
 import { FlashcardsPage } from './FlashcardsPage';
@@ -30,6 +31,7 @@ interface AppRouterProps {
   hasAccessedApp: boolean;
   user: User | null;
   navigationHelpers: NavigationHelpers;
+  showAuth: boolean;
 }
 
 export function AppRouter({ 
@@ -37,9 +39,15 @@ export function AppRouter({
   setCurrentScreen, 
   hasAccessedApp, 
   user, 
-  navigationHelpers 
+  navigationHelpers,
+  showAuth 
 }: AppRouterProps) {
   const { handleTryApp, handleNavigateToAbout, handleNavigateBackToLanding, handleLogout } = navigationHelpers;
+
+  // Show auth page when showAuth is true and user has clicked "Try App"
+  if (showAuth && hasAccessedApp) {
+    return <AuthPage />;
+  }
 
   // Show landing page if user hasn't accessed the app yet
   if (!hasAccessedApp && currentScreen === 'landing') {
@@ -99,7 +107,7 @@ export function AppRouter({
             <SettingsPage 
               userName={user?.name || user?.email?.split('@')[0] || 'Dev User'} 
               userEmail={user?.email || 'developer@studyflow.com'}
-              userAvatar={user?.avatar_url}
+              userAvatar={user?.avatar_url || undefined}
               authProvider={user?.provider || 'mock'}
               onLogout={handleLogout} 
             />
