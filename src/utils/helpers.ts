@@ -14,6 +14,7 @@ export function createNavigationHelpers(
 ): NavigationHelpers {
   const handleTryApp = () => {
     setHasAccessedApp(true);
+    setCurrentScreen('dashboard'); // This ensures navigation happens
   };
 
   const handleNavigateToAbout = () => {

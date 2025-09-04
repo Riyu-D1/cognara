@@ -44,8 +44,8 @@ export function AppRouter({
 }: AppRouterProps) {
   const { handleTryApp, handleNavigateToAbout, handleNavigateBackToLanding, handleLogout } = navigationHelpers;
 
-  // Show landing page if user hasn't accessed the app yet or if they're on the landing page
-  if (!hasAccessedApp || currentScreen === 'landing') {
+  // Always show landing page if we're on the landing screen
+  if (currentScreen === 'landing') {
     return (
       <SettingsProvider>
         <LandingPage onTryApp={handleTryApp} onNavigateToAbout={handleNavigateToAbout} />
@@ -54,7 +54,7 @@ export function AppRouter({
     );
   }
 
-  // Show auth page when showAuth is true and user has clicked "Try App"
+  // Show auth page when user is not authenticated and has clicked "Try App"
   if (showAuth && hasAccessedApp) {
     return <AuthPage />;
   }
