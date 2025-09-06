@@ -10,7 +10,7 @@ import { Slider } from './ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
 import { useSettings } from './SettingsContext';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { 
   User, 
   Bell, 
