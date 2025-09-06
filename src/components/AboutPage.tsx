@@ -26,35 +26,35 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
   const values = [
     {
       icon: Brain,
-      title: "AI-Powered Learning",
-      description: "Leveraging cutting-edge artificial intelligence to personalize and enhance the learning experience for every student.",
+      title: "AI-Powered Tools",
+      description: "Effortlessly generate summaries, flashcards, and quizzes with intelligent AI that understands your learning style.",
       gradient: "from-primary to-accent"
     },
     {
       icon: Heart,
-      title: "Student-Centered Design",
-      description: "Every feature is designed with students in mind, focusing on reducing stress and maximizing learning efficiency.",
+      title: "Unified Experience",
+      description: "No more juggling multiple tools. Everything you need for effective studying in one seamless platform.",
       gradient: "from-accent-indigo to-accent-cyan"
     },
     {
       icon: Users,
-      title: "Collaborative Learning",
-      description: "Building communities where students can learn together, share knowledge, and support each other's growth.",
+      title: "Community & Connection",
+      description: "Share progress, exchange tips, and learn collectively. Turn studying from isolation into collaboration.",
       gradient: "from-accent-cyan to-primary"
     },
     {
-      icon: Rocket,
-      title: "Continuous Innovation",
-      description: "Constantly evolving with new features and improvements based on student feedback and educational research.",
+      icon: Target,
+      title: "Personalized & Shared",
+      description: "Learning that adapts to you while connecting you with others. Both individual growth and community support.",
       gradient: "from-accent to-accent-indigo"
     }
   ];
 
   const milestones = [
-    { year: "2024", title: "StudyFlow Born", description: "The vision for AI-powered learning started" },
-    { year: "Q1", title: "Core Features", description: "Notes, flashcards, and AI assistant developed" },
-    { year: "Q2", title: "Beta Launch", description: "First students begin using StudyFlow" },
-    { year: "Future", title: "Global Impact", description: "Expanding to help students worldwide" }
+    { year: "2024", title: "The Frustration", description: "Experiencing fragmented tools and isolated studying as a student" },
+    { year: "Q2", title: "The Vision", description: "Conceptualizing a unified platform combining AI tools with community" },
+    { year: "Q3", title: "The Build", description: "Developing Cognara with AI-powered features and social connectivity" },
+    { year: "Q4", title: "The Launch", description: "Bringing Cognara to students who share the same frustrations" }
   ];
 
   return (
@@ -148,14 +148,10 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               </h2>
               <div className="space-y-6">
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  StudyFlow was created by a passionate developer and lifelong learner who experienced firsthand 
-                  the challenges of modern education. Frustrated by inefficient study methods and scattered tools, 
-                  they envisioned a unified platform that could adapt to each student's unique learning style.
+                  I created Cognara because I've always believed that learning should feel connected and empowering. As a student, I noticed that while there are countless study tools, none truly bring students together to share their knowledge, celebrate their academic success, and learn from one another. Frustrated by inefficient study methods and scattered platforms, I set out to design a solution that combines intelligent tools with a sense of community.
                 </p>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  With a background in both technology and education, our founder combines technical expertise 
-                  with deep understanding of learning psychology to create tools that truly make a difference 
-                  in students' academic journeys.
+                  With my passion for technology, product design, and education, I built Cognara as more than just a study assistant—it's a space where students can organize their learning, gain insights with AI, and connect through shared achievements.
                 </p>
                 <div className="flex items-center space-x-4 pt-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
@@ -172,17 +168,16 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
             <Card className="p-8 clay-card border-0">
               <div className="text-center">
                 <div className="w-24 h-24 bg-gradient-to-r from-accent-indigo to-accent-cyan rounded-full flex items-center justify-center mx-auto mb-6 clay-elevated">
-                  <GraduationCap className="w-12 h-12 text-white" />
+                  <span className="text-2xl font-bold text-blue-600">RD</span>
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Our Mission</h3>
-                <p className="text-muted-foreground leading-relaxed mb-6">
-                  "To democratize access to personalized, AI-powered education tools that help every student 
-                  reach their full potential, regardless of their learning style or background."
+                <h3 className="text-xl font-semibold text-foreground mb-3">Creator's Vision</h3>
+                <p className="text-muted-foreground leading-relaxed mb-6 italic">
+                  "I don't just build tools, I build possibilities—because learning should flow as effortlessly as ideas do."
                 </p>
                 <div className="flex justify-center">
                   <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-primary/20">
                     <Star className="w-3 h-3 mr-1" />
-                    Education for All
+                    Innovation & Learning
                   </Badge>
                 </div>
               </div>
@@ -203,8 +198,8 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <span className="bg-gradient-to-r from-primary to-accent-cyan bg-clip-text text-transparent"> Values</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              We believe that every student deserves access to intelligent, adaptive learning tools that 
-              make studying more effective, engaging, and enjoyable.
+              Born from the frustration of fragmented tools and isolated studying, Cognara merges AI-powered 
+              productivity with genuine community connection.
             </p>
           </motion.div>
 
@@ -238,8 +233,8 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
             {...fadeInOnView}
           >
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
-              The Idea Behind
-              <span className="bg-gradient-to-r from-accent-indigo to-accent bg-clip-text text-transparent"> StudyFlow</span>
+              The Story Behind
+              <span className="bg-gradient-to-r from-accent-indigo to-accent bg-clip-text text-transparent"> Cognara</span>
             </h2>
           </motion.div>
 
@@ -252,33 +247,33 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
           >
             <motion.div variants={fadeInUp}>
               <Card className="p-8 clay-card border-0">
-                <h3 className="text-xl font-semibold text-foreground mb-4">The Problem</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-4">The Problem I Faced</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Traditional study methods are often inefficient and one-size-fits-all. Students struggle with 
-                  scattered notes, ineffective memorization techniques, and lack of personalized feedback. 
-                  The digital age has brought information overload rather than intelligent organization.
+                  As a student, I constantly found myself juggling multiple tools—one for notes, another for flashcards, 
+                  another for collaboration—yet none of them truly worked together. Studying felt fragmented, inefficient, 
+                  and isolating. The problem wasn't just about tools; it was about connection.
                 </p>
               </Card>
             </motion.div>
 
             <motion.div variants={fadeInUp}>
               <Card className="p-8 clay-card border-0 clay-glow-subtle">
-                <h3 className="text-xl font-semibold text-foreground mb-4">The Solution</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-4">The Solution I Built</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  StudyFlow combines the power of artificial intelligence with proven learning methodologies. 
-                  Our platform adapts to each student's learning patterns, automatically generates study materials, 
-                  and provides intelligent insights to optimize study sessions and improve retention.
+                  I created Cognara to solve this exact problem. My vision was to build a space that merges AI-powered study tools 
+                  with a collaborative community. A platform that helps students generate summaries, flashcards, and quizzes 
+                  effortlessly, while also giving them a place to share progress, exchange tips, and learn collectively.
                 </p>
               </Card>
             </motion.div>
 
             <motion.div variants={fadeInUp}>
               <Card className="p-8 clay-card border-0">
-                <h3 className="text-xl font-semibold text-foreground mb-4">The Impact</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-4">The Impact We're Making</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  By making learning more efficient and personalized, StudyFlow helps students achieve better 
-                  academic results while reducing stress and study time. Our goal is to transform the educational 
-                  experience for millions of students worldwide.
+                  At its core, Cognara isn't just another productivity app—it's a response to the real frustrations students face daily. 
+                  It combines design, technology, and a belief that learning should be both personalized and shared, turning studying 
+                  from a solitary grind into an engaging, supportive journey.
                 </p>
               </Card>
             </motion.div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -67,7 +67,27 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   }]);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [savedQuizzes, setSavedQuizzes] = useState<{id: number; title: string; questions: Question[]; createdAt: string}[]>(() => {
+    try {
+      const storedQuizzes = localStorage.getItem('studyflow-quizzes');
+      return storedQuizzes ? JSON.parse(storedQuizzes) : [];
+    } catch (error) {
+      console.error('Error loading quizzes from localStorage:', error);
+      return [];
+    }
+  });
+  const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
 
+  // Save quizzes to localStorage whenever savedQuizzes changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('studyflow-quizzes', JSON.stringify(savedQuizzes));
+    } catch (error) {
+      console.error('Error saving quizzes to localStorage:', error);
+    }
+  }, [savedQuizzes]);
+
+  // Initial quiz questions
   const questions: Question[] = [
     {
       id: 1,
@@ -123,9 +143,9 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   const handleNextQuestion = () => {
     if (selectedAnswer === null) return;
 
-    const isCorrect = selectedAnswer === questions[currentQuestion].correctAnswer;
+    const isCorrect = selectedAnswer === currentQuizQuestions[currentQuestion].correctAnswer;
     const newResult: QuizResult = {
-      questionId: questions[currentQuestion].id,
+      questionId: currentQuizQuestions[currentQuestion].id,
       selectedAnswer,
       isCorrect
     };
@@ -134,7 +154,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
     setShowResult(true);
 
     setTimeout(() => {
-      if (currentQuestion < questions.length - 1) {
+      if (currentQuestion < currentQuizQuestions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);
         setSelectedAnswer(null);
         setShowResult(false);
@@ -153,7 +173,10 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
     setTimeElapsed(0);
   };
 
-  const startQuiz = () => {
+  const startQuiz = (quizId?: number) => {
+    if (quizId) {
+      setSelectedQuizId(quizId);
+    }
     setViewMode('quiz');
     restartQuiz();
   };
@@ -168,12 +191,41 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   };
 
   // Mock quiz data for the list view
-  const availableQuizzes = [
-    { id: 1, title: 'Biology Basics', questions: 5, subject: 'Biology', difficulty: 'Easy', lastTaken: '2 days ago' },
-    { id: 2, title: 'Chemistry Elements', questions: 8, subject: 'Chemistry', difficulty: 'Medium', lastTaken: '1 week ago' },
-    { id: 3, title: 'Physics Laws', questions: 6, subject: 'Physics', difficulty: 'Hard', lastTaken: 'Never' },
-    { id: 4, title: 'Math Equations', questions: 10, subject: 'Math', difficulty: 'Medium', lastTaken: '3 days ago' },
+  // Combine initial mock quizzes with saved quizzes
+  const mockQuizzes = [
+    { id: 1, title: 'Biology Basics', questions: 2, subject: 'Biology', difficulty: 'Easy', lastTaken: '2 days ago' },
+    { id: 2, title: 'Chemistry Elements', questions: 1, subject: 'Chemistry', difficulty: 'Medium', lastTaken: '1 week ago' },
+    { id: 3, title: 'Physics Laws', questions: 1, subject: 'Physics', difficulty: 'Hard', lastTaken: 'Never' },
   ];
+  
+  const availableQuizzes = [
+    ...savedQuizzes.map(quiz => ({
+      id: quiz.id,
+      title: quiz.title,
+      questions: quiz.questions.length,
+      subject: quiz.questions[0]?.subject || 'General',
+      difficulty: 'Medium',
+      lastTaken: 'Never',
+      createdAt: quiz.createdAt
+    })),
+    ...mockQuizzes
+  ];
+
+  console.log('Saved quizzes:', savedQuizzes);
+  console.log('Available quizzes:', availableQuizzes);
+
+  // Get current quiz questions based on selection
+  const getCurrentQuestions = () => {
+    if (selectedQuizId) {
+      const selectedQuiz = savedQuizzes.find(quiz => quiz.id === selectedQuizId);
+      if (selectedQuiz) {
+        return selectedQuiz.questions;
+      }
+    }
+    return questions; // Default questions
+  };
+
+  const currentQuizQuestions = getCurrentQuestions();
 
   const removeQuestion = (index: number) => {
     if (newQuizQuestions.length > 1) {
@@ -198,7 +250,26 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   };
 
   const saveQuiz = () => {
-    console.log('Saving quiz:', { title: newQuizTitle, questions: newQuizQuestions });
+    if (!newQuizTitle.trim() || newQuizQuestions.length === 0 || newQuizQuestions.some(q => !q.question.trim() || q.options.some(opt => !opt.trim()))) return;
+    
+    const newQuiz = {
+      id: Date.now(),
+      title: newQuizTitle,
+      questions: newQuizQuestions.map((q, index) => ({
+        id: index + 1,
+        question: q.question.trim(),
+        options: q.options.map(opt => opt.trim()),
+        correctAnswer: q.correctAnswer,
+        subject: 'General', // Could be detected or selected
+        explanation: q.explanation.trim() || 'No explanation provided'
+      })),
+      createdAt: 'Just now'
+    };
+
+    // Add new quiz to saved quizzes
+    setSavedQuizzes([newQuiz, ...savedQuizzes]);
+    
+    console.log('Quiz saved successfully:', newQuiz);
     setNewQuizTitle('');
     setNewQuizQuestions([{
       question: '',
@@ -211,51 +282,191 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
     setViewMode('list');
   };
 
-  const handleContentSelect = (type: 'youtube' | 'file', content: any) => {
+  const handleContentSelect = async (type: 'youtube' | 'file', content: any) => {
     console.log('Content selected for quiz:', type, content);
     setShowContentOptions(false);
     setShowManualInput(true);
-    // Here you would typically process the content and generate quiz questions
-    // For now, we'll just show placeholder data
+    
     if (type === 'youtube') {
-      setNewQuizTitle(`Quiz from: ${content.url}`);
-      setNewQuizQuestions([
-        {
-          question: 'Sample question based on video content',
-          options: ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: 0,
-          explanation: 'AI will generate questions from the YouTube video content'
-        },
-        {
-          question: 'Another sample question from video',
-          options: ['Choice 1', 'Choice 2', 'Choice 3', 'Choice 4'],
-          correctAnswer: 1,
-          explanation: 'Questions will be automatically created based on key concepts'
-        }
-      ]);
+      try {
+        setNewQuizTitle(`Quiz from: ${content.url}`);
+        setNewQuizQuestions([
+          {
+            question: '🤖 AI is analyzing the YouTube video and generating quiz questions...',
+            options: ['Please wait...', 'Processing content...', 'Creating questions...', 'Almost done...'],
+            correctAnswer: 0,
+            explanation: 'AI is working on your quiz questions.'
+          }
+        ]);
+
+        // Extract video ID and get video info
+        const videoId = extractVideoId(content.url);
+        if (!videoId) throw new Error('Invalid YouTube URL');
+
+        const videoInfo = await getYouTubeVideoInfo(content.url);
+        
+        // Use AI to generate quiz questions
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `Create a quiz from this YouTube video information:
+
+Title: ${videoInfo.title}
+Description: ${videoInfo.description}
+
+Generate 5-6 multiple choice quiz questions that test comprehension of the key concepts.
+
+Format each question as:
+Question: [Clear question text]
+A) [Option 1]
+B) [Option 2] 
+C) [Option 3]
+D) [Option 4]
+Correct: [A, B, C, or D]
+Explanation: [Brief explanation of why the answer is correct]
+
+Focus on testing understanding of main concepts, not trivial details.`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Parse AI response to extract quiz questions
+        const quizQuestions = parseQuizFromAI(text);
+        
+        setNewQuizTitle(`${videoInfo.title} - Quiz`);
+        setNewQuizQuestions(quizQuestions.length > 0 ? quizQuestions : [
+          {
+            question: 'What is the main topic covered in this video?',
+            options: [videoInfo.title, 'Other topic', 'Different subject', 'None of the above'],
+            correctAnswer: 0,
+            explanation: 'The video primarily covers: ' + videoInfo.title
+          }
+        ]);
+
+      } catch (error) {
+        console.error('Error processing YouTube video for quiz:', error);
+        setNewQuizQuestions([
+          {
+            question: '❌ Error processing video. Please check the URL and try again.',
+            options: ['Try again', 'Check URL', 'Manual input', 'Contact support'],
+            correctAnswer: 0,
+            explanation: 'There was an issue processing the YouTube video.'
+          }
+        ]);
+      }
     } else if (type === 'file') {
       const fileNames = content.files.map((file: File) => file.name).join(', ');
       setNewQuizTitle(`Quiz from: ${fileNames}`);
       setNewQuizQuestions([
         {
-          question: 'Sample question from uploaded content',
-          options: ['Answer A', 'Answer B', 'Answer C', 'Answer D'],
+          question: '📄 File processing for quizzes will be implemented soon.',
+          options: ['Create manually', 'Upload different file', 'Try YouTube instead', 'Wait for update'],
           correctAnswer: 0,
-          explanation: 'AI will extract key information and create quiz questions'
-        },
-        {
-          question: 'Another question from document',
-          options: ['Response 1', 'Response 2', 'Response 3', 'Response 4'],
-          correctAnswer: 2,
-          explanation: 'Questions will be based on the most important concepts in the documents'
+          explanation: 'You can create quiz questions manually for now.'
         }
       ]);
     }
   };
 
+  // Helper functions for quiz page
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+      /youtube\.com\/embed\/([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) return match[1];
+    }
+    return null;
+  };
+
+  const getYouTubeVideoInfo = async (url: string) => {
+    const videoId = extractVideoId(url);
+    if (!videoId) throw new Error('Invalid YouTube URL');
+
+    try {
+      console.log('Fetching YouTube video info for ID:', videoId);
+      const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${import.meta.env.VITE_YOUTUBE_API_KEY}`;
+      console.log('YouTube API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      console.log('YouTube API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('YouTube API error response:', errorText);
+        throw new Error(`YouTube API request failed: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('YouTube API response data:', data);
+      const video = data.items?.[0];
+      
+      if (!video) throw new Error('Video not found or may be private/restricted');
+
+      return {
+        title: video.snippet?.title ?? 'Untitled',
+        description: video.snippet?.description ?? 'No description available',
+        videoId
+      };
+    } catch (error) {
+      console.error('YouTube API error:', error);
+      throw error;
+    }
+  };
+
+  const parseQuizFromAI = (text: string) => {
+    const questions = [];
+    const sections = text.split(/Question:|^\d+\./m).filter(section => section.trim());
+    
+    for (const section of sections) {
+      try {
+        const lines = section.split('\n').map(line => line.trim()).filter(line => line);
+        if (lines.length < 5) continue;
+
+        const questionText = lines[0];
+        const options: string[] = [];
+        let correctAnswer = 0;
+        let explanation = '';
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          
+          if (line.match(/^[A-D]\)/)) {
+            options.push(line.substring(2).trim());
+          } else if (line.match(/^Correct:/i)) {
+            const correctLetter = line.match(/[A-D]/)?.[0];
+            if (correctLetter) {
+              correctAnswer = correctLetter.charCodeAt(0) - 'A'.charCodeAt(0);
+            }
+          } else if (line.match(/^Explanation:/i)) {
+            explanation = line.replace(/^Explanation:/i, '').trim();
+          }
+        }
+
+        if (questionText && options.length >= 4) {
+          questions.push({
+            question: questionText,
+            options: options,
+            correctAnswer: correctAnswer,
+            explanation: explanation || 'No explanation provided.'
+          });
+        }
+      } catch (error) {
+        console.log('Error parsing quiz question:', error);
+      }
+    }
+
+    return questions;
+  };
+
   const getScore = () => {
     const correct = quizResults.filter(result => result.isCorrect).length;
-    return Math.round((correct / questions.length) * 100);
+    return Math.round((correct / currentQuizQuestions.length) * 100);
   };
 
   const getScoreColor = (score: number) => {
@@ -511,7 +722,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                 </div>
                 
                 <Button 
-                  onClick={() => startQuiz()}
+                  onClick={() => startQuiz(quiz.id)}
                   className="w-full clay-button text-white rounded-xl"
                 >
                   <Play className="w-4 h-4 mr-2" />
@@ -645,8 +856,8 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   }
 
   if (viewMode === 'quiz') {
-    const question = questions[currentQuestion];
-    const progress = ((currentQuestion + 1) / questions.length) * 100;
+    const question = currentQuizQuestions[currentQuestion];
+    const progress = ((currentQuestion + 1) / currentQuizQuestions.length) * 100;
     const isCorrectAnswer = showResult && selectedAnswer === question.correctAnswer;
     const isWrongAnswer = showResult && selectedAnswer !== question.correctAnswer;
 
@@ -678,7 +889,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Question {currentQuestion + 1} of {questions.length}</span>
+              <span>Question {currentQuestion + 1} of {currentQuizQuestions.length}</span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -694,13 +905,13 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                 <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto clay-glow-primary">
                   <Target className="w-6 h-6 text-white" />
                 </div>
-                <h2 className="text-foreground">{question.question}</h2>
+                <h2 className="text-foreground text-xl md:text-2xl leading-relaxed px-4">{question.question}</h2>
               </div>
 
               {/* Answer Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {question.options.map((option, index) => {
-                  let buttonClass = "h-16 text-left justify-start rounded-xl transition-all duration-200 border-2";
+                  let buttonClass = "min-h-16 py-4 px-6 text-left justify-start rounded-xl transition-all duration-200 border-2 w-full";
                   
                   if (showResult) {
                     if (index === question.correctAnswer) {
@@ -726,8 +937,8 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                       className={buttonClass}
                       variant="ghost"
                     >
-                      <div className="flex items-center space-x-3 w-full">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      <div className="flex items-start space-x-4 w-full">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0 mt-1 ${
                           showResult && index === question.correctAnswer 
                             ? 'bg-green-500 text-white'
                             : showResult && index === selectedAnswer && selectedAnswer !== question.correctAnswer
@@ -738,7 +949,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                         }`}>
                           {String.fromCharCode(65 + index)}
                         </div>
-                        <span className="flex-1 text-left">{option}</span>
+                        <span className="flex-1 text-left leading-relaxed whitespace-normal break-words">{option}</span>
                       </div>
                     </Button>
                   );
@@ -756,7 +967,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                     <p className="font-medium mb-2">
                       {isCorrectAnswer ? '🎉 Correct!' : '❌ Incorrect'}
                     </p>
-                    <p className="text-sm opacity-90">{question.explanation}</p>
+                    <p className="text-sm opacity-90 leading-relaxed whitespace-normal break-words">{question.explanation}</p>
                   </div>
                 </div>
               )}
@@ -768,7 +979,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                     onClick={handleNextQuestion}
                     className="clay-button text-white rounded-xl"
                   >
-                    {currentQuestion < questions.length - 1 ? (
+                    {currentQuestion < currentQuizQuestions.length - 1 ? (
                       <>
                         Next Question
                         <ArrowRight className="w-4 h-4 ml-2" />

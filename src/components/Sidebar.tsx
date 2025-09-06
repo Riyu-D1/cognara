@@ -28,9 +28,8 @@ export function Sidebar({ currentScreen, onNavigate, userName }: SidebarProps) {
     { id: 'notes' as Screen, icon: FileText, label: 'Notes' },
     { id: 'flashcards' as Screen, icon: Brain, label: 'Flashcards' },
     { id: 'quiz' as Screen, icon: HelpCircle, label: 'Quizzes' },
-
     { id: 'ai' as Screen, icon: Bot, label: 'AI Assistant' },
-    { id: 'social' as Screen, icon: Users, label: 'Social' },
+    { id: 'social' as Screen, icon: Users, label: 'Social (Beta)' },
     { id: 'calendar' as Screen, icon: Calendar, label: 'Calendar' },
     { id: 'settings' as Screen, icon: Settings, label: 'Settings' },
   ];

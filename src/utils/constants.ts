@@ -2,7 +2,7 @@ export type Screen = 'landing' | 'about' | 'dashboard' | 'notes' | 'flashcards' 
 
 // 🚨 TEMPORARY: Set to true to bypass authentication for frontend development
 // Change back to false when you want to re-enable authentication
-export const BYPASS_AUTH = false;
+export const BYPASS_AUTH = true;
 
 // Mock user for development when auth is bypassed
 export const mockUser = {

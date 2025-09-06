@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -53,25 +53,139 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null);
 
   // Enhanced mock notes with substantial content
-  const [savedNotes, setSavedNotes] = useState<Note[]>(mockNotes);
+  const [savedNotes, setSavedNotes] = useState<Note[]>(() => {
+    try {
+      const storedNotes = localStorage.getItem('studyflow-notes');
+      return storedNotes ? JSON.parse(storedNotes) : mockNotes;
+    } catch (error) {
+      console.error('Error loading notes from localStorage:', error);
+      return mockNotes;
+    }
+  });
+
+  // Save notes to localStorage whenever savedNotes changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('studyflow-notes', JSON.stringify(savedNotes));
+    } catch (error) {
+      console.error('Error saving notes to localStorage:', error);
+    }
+  }, [savedNotes]);
 
   const handleSummarize = () => {
     setIsProcessing(true);
     setTimeout(() => setIsProcessing(false), 2000);
   };
 
-  const handleContentSelect = (type: 'youtube' | 'file', content: any) => {
+  const handleContentSelect = async (type: 'youtube' | 'file', content: any) => {
     console.log('Content selected:', type, content);
     setShowContentOptions(false);
     setShowManualInput(true);
-    // Here you would typically process the content and populate the notes field
+    setIsProcessing(true);
+    
     if (type === 'youtube') {
-      setNoteTitle(`Notes from: ${content.url}`);
-      setNotes(`Processing YouTube video: ${content.url}\n\nContent will be extracted and formatted for note-taking...`);
+      try {
+        setNoteTitle(`Notes from: ${content.url}`);
+        setNotes('🤖 AI is analyzing the YouTube video and generating study notes...\n\nPlease wait...');
+
+        // Extract video ID from URL
+        const videoId = extractVideoId(content.url);
+        if (!videoId) {
+          throw new Error('Invalid YouTube URL');
+        }
+
+        // Get video info using YouTube API
+        const videoInfo = await getYouTubeVideoInfo(content.url);
+        
+        // Use AI to generate notes from video description
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `Create comprehensive study notes from this YouTube video information:
+
+Title: ${videoInfo.title}
+Description: ${videoInfo.description}
+URL: ${content.url}
+
+Please create detailed study notes with:
+1. **Main Topics** - Key subjects covered
+2. **Key Concepts** - Important definitions and explanations  
+3. **Study Points** - Bullet points of important information
+4. **Summary** - Brief overview
+
+Format as clear, organized study notes with proper headings and structure.`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const aiNotes = response.text();
+
+        setNoteTitle(`Study Notes: ${videoInfo.title}`);
+        setNotes(aiNotes);
+        
+      } catch (error) {
+        console.error('Error processing YouTube video:', error);
+        setNotes(`❌ Error processing YouTube video: ${content.url}\n\nPlease check the URL and try again, or add notes manually.`);
+      }
     } else if (type === 'file') {
       const fileNames = content.files.map((file: File) => file.name).join(', ');
       setNoteTitle(`Notes from: ${fileNames}`);
-      setNotes(`Processing uploaded files: ${fileNames}\n\nContent will be extracted and formatted for note-taking...`);
+      setNotes(`📄 Processing uploaded files: ${fileNames}\n\nFile processing will be implemented soon. For now, you can add notes manually.`);
+    }
+    
+    setIsProcessing(false);
+  };
+
+  // Helper function to extract video ID from YouTube URL
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+      /youtube\.com\/embed\/([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  };
+
+  // YouTube API function
+  const getYouTubeVideoInfo = async (url: string) => {
+    const videoId = extractVideoId(url);
+    if (!videoId) throw new Error('Invalid YouTube URL');
+
+    try {
+      console.log('Fetching YouTube video info for ID:', videoId);
+      const apiUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${import.meta.env.VITE_YOUTUBE_API_KEY}`;
+      console.log('YouTube API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      console.log('YouTube API response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('YouTube API error response:', errorText);
+        throw new Error(`YouTube API request failed: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('YouTube API response data:', data);
+      const video = data.items?.[0];
+      
+      if (!video) throw new Error('Video not found or may be private/restricted');
+
+      return {
+        title: video.snippet?.title ?? 'Untitled',
+        description: video.snippet?.description ?? 'No description available',
+        videoId
+      };
+    } catch (error) {
+      console.error('YouTube API error:', error);
+      throw error;
     }
   };
 

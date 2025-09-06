@@ -427,11 +427,27 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
+        {/* Beta Banner */}
+        <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
+            <p className="text-amber-800 font-medium">
+              🚧 Still in Production - Beta Testing 🚧
+            </p>
+            <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl text-foreground mb-2 font-semibold">Social Hub</h1>
-            <p className="text-muted-foreground">Connect with fellow students and share your study journey</p>
+            <h1 className="text-3xl text-foreground mb-2 font-semibold">
+              Social Hub 
+              <Badge variant="outline" className="ml-3 border-amber-300 text-amber-700 bg-amber-50">
+                Beta
+              </Badge>
+            </h1>
+            <p className="text-muted-foreground">Connect with fellow students and share your study journey (Currently in beta testing)</p>
           </div>
           
           <div className="flex items-center space-x-4">

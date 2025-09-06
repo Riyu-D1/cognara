@@ -1,5 +1,16 @@
 import React from 'react';
-import { SettingsProvider } from './SettingsContext';
+import { SettingsPr  if (showAuth && hasAccessedApp) {
+    return <AuthPage />;
+  }
+
+  if (currentScreen === 'landing' || !hasAccessedApp) {
+    return (
+      <SettingsProvider>
+        <LandingPage onTryApp={handleTryApp} onNavigateToAbout={handleNavigateToAbout} />
+        <Toaster />
+      </SettingsProvider>
+    );
+  }'./SettingsContext';
 import { LandingPage } from './LandingPage';
 import { AboutPage } from './AboutPage';
 import { AuthPage } from './AuthPage';
@@ -7,6 +18,7 @@ import { Dashboard } from './Dashboard';
 import { NotesPage } from './NotesPage';
 import { FlashcardsPage } from './FlashcardsPage';
 import { QuizPage } from './QuizPage';
+
 import { SettingsPage } from './SettingsPage';
 import { AIPage } from './AIPage';
 import { SocialPage } from './SocialPage';
@@ -43,11 +55,8 @@ export function AppRouter({
 }: AppRouterProps) {
   const { handleTryApp, handleNavigateToAbout, handleNavigateBackToLanding, handleLogout } = navigationHelpers;
 
-  if (showAuth && hasAccessedApp) {
-    return <AuthPage />;
-  }
-
-  if (currentScreen === 'landing' || !hasAccessedApp) {
+  // Always show landing page if we're on the landing screen
+  if (currentScreen === 'landing') {
     return (
       <SettingsProvider>
         <LandingPage onTryApp={handleTryApp} onNavigateToAbout={handleNavigateToAbout} />
@@ -56,6 +65,13 @@ export function AppRouter({
     );
   }
 
+  // Show auth page when user is not authenticated and has clicked "Try App"
+  if (showAuth && hasAccessedApp) {
+    return <AuthPage />;
+  }
+  }
+
+  // Show about page (can be accessed from landing or within app)
   if (currentScreen === 'about') {
     return (
       <SettingsProvider>
@@ -65,6 +81,17 @@ export function AppRouter({
     );
   }
 
+  // Show landing page when user navigates back or explicitly goes to landing
+  if (currentScreen === 'landing') {
+    return (
+      <SettingsProvider>
+        <LandingPage onTryApp={handleTryApp} onNavigateToAbout={handleNavigateToAbout} />
+        <Toaster />
+      </SettingsProvider>
+    );
+  }
+
+  // Main app with sidebar
   return (
     <SettingsProvider>
       <div className="min-h-screen bg-background flex">
@@ -73,6 +100,7 @@ export function AppRouter({
           onNavigate={setCurrentScreen} 
           userName={user?.name || user?.email?.split('@')[0] || 'Dev User'} 
         />
+        
         <main className="flex-1 ml-64">
           {currentScreen === 'dashboard' && (
             <Dashboard 
@@ -83,6 +111,7 @@ export function AppRouter({
           {currentScreen === 'notes' && <NotesPage onNavigate={setCurrentScreen} />}
           {currentScreen === 'flashcards' && <FlashcardsPage onNavigate={setCurrentScreen} />}
           {currentScreen === 'quiz' && <QuizPage onNavigate={setCurrentScreen} />}
+
           {currentScreen === 'ai' && <AIPage onNavigate={setCurrentScreen} />}
           {currentScreen === 'social' && <SocialPage onNavigate={setCurrentScreen} />}
           {currentScreen === 'calendar' && <CalendarPage onNavigate={setCurrentScreen} />}
