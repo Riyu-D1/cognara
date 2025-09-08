@@ -1,4 +1,4 @@
-# StudyFlow Authentication Setup
+# Cognara Authentication Setup
 
 ## 🚀 Quick Start - Email/Password Authentication Works Now!
 
@@ -6,7 +6,7 @@
 
 1. **Sign up** with any email and password (min. 6 characters)
 2. **Sign in** with your credentials 
-3. **Access all StudyFlow features** immediately
+3. **Access all Cognara features** immediately
 
 ## 📧 Email Authentication (Ready to Use)
 
@@ -67,4 +67,4 @@ Once you're signed in with email/password, you can:
 - Use distraction-free study mode
 - Customize settings and preferences
 
-The OAuth setup is purely optional - your StudyFlow experience is complete with email authentication!
+The OAuth setup is purely optional - your Cognara experience is complete with email authentication!

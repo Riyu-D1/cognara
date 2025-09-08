@@ -39,7 +39,7 @@ export function HeroSection({ onTryApp }: HeroSectionProps) {
             variants={fadeInUp}
             className="text-xl text-muted-foreground mb-12 leading-relaxed max-w-2xl mx-auto"
           >
-            StudyFlow combines AI intelligence with proven learning techniques to help you study smarter, 
+            Cognara combines AI intelligence with proven learning techniques to help you study smarter, 
             retain more, and achieve better results in less time.
           </motion.p>
           

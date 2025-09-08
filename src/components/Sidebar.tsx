@@ -44,7 +44,7 @@ export function Sidebar({ currentScreen, onNavigate, userName }: SidebarProps) {
           </div>
           <div>
             <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              StudyFlow
+              Cognara
             </h1>
             <p className="text-xs text-muted-foreground">Modern Learning</p>
           </div>

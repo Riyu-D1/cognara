@@ -20,7 +20,7 @@ export function WelcomeScreen({ onLogin }: WelcomeScreenProps) {
                 <Brain className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-4xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                StudyFlow
+                Cognara
               </h1>
             </div>
             

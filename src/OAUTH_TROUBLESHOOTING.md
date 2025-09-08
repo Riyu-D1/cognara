@@ -1,4 +1,4 @@
-# OAuth Troubleshooting Guide for StudyFlow
+# OAuth Troubleshooting Guide for Cognara
 
 ## 🔍 Current Issue: "Refused to Connect" Error
 
@@ -83,7 +83,7 @@ Remember: Email/password authentication works immediately without any OAuth setu
 1. Click "Sign up" at the bottom of the login form
 2. Enter email and password (6+ characters)  
 3. Click "Create Account"
-4. You'll be signed in and can use all StudyFlow features
+4. You'll be signed in and can use all Cognara features
 
 ## 🔍 Step-by-Step Debugging
 

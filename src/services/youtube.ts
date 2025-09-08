@@ -1,12 +1,15 @@
 import { google } from 'googleapis';
 
+// Note: API key should be handled server-side for security
+// This is a placeholder - implement server endpoint for YouTube API calls
 const youtube = google.youtube({
   version: 'v3',
-  auth: import.meta.env.VITE_YOUTUBE_API_KEY || ''
+  auth: '' // Will be handled by server-side endpoint
 });
 
-if (!import.meta.env.VITE_YOUTUBE_API_KEY) {
-  console.warn('YouTube API key not found in environment variables');
+// For development only - remove in production
+if (import.meta.env.DEV && import.meta.env.VITE_YOUTUBE_API_KEY) {
+  console.warn('Using client-side YouTube API key - move to server-side for production');
 }
 
 interface YouTubeVideoInfo {

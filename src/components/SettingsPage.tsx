@@ -162,7 +162,7 @@ export function SettingsPage({ userName, userEmail, userAvatar, authProvider, on
           </div>
           <div>
             <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
-            <p className="text-muted-foreground">Customize your StudyFlow experience</p>
+            <p className="text-muted-foreground">Customize your Cognara experience</p>
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@
 ## Current AI Features
 
 ### ✅ Chat Interface
-- **Clean, modern chat UI** with StudyFlow's pastel design aesthetic
+- **Clean, modern chat UI** with Cognara's pastel design aesthetic
 - **Real-time conversation** with typing indicators and smooth animations
 - **Message history** with timestamps
 - **Responsive design** that works on all screen sizes
@@ -56,7 +56,7 @@ studyContext = {
 ## Design Features
 
 ### 🎨 Visual Design
-- **Soft pastel gradients** matching StudyFlow brand
+- **Soft pastel gradients** matching Cognara brand
 - **Rounded corners** and smooth shadows
 - **Clean typography** with proper contrast
 - **Animated elements** for engaging interactions
@@ -91,7 +91,7 @@ studyContext = {
 - **ShadCN UI** components for polished interface
 
 ### 🔌 Integration Points
-- **StudyFlow ecosystem** connected to notes, flashcards, quizzes
+- **Cognara ecosystem** connected to notes, flashcards, quizzes
 - **User context** from dashboard and activity data
 - **Navigation integration** with main app sidebar
 - **Responsive design** for desktop and mobile

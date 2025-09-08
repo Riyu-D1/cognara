@@ -19,7 +19,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [savedDecks, setSavedDecks] = useState(() => {
     try {
-      const storedDecks = localStorage.getItem('studyflow-flashcards');
+      const storedDecks = localStorage.getItem('cognara-flashcards');
       return storedDecks ? JSON.parse(storedDecks) : mockFlashcardDecks;
     } catch (error) {
       console.error('Error loading flashcards from localStorage:', error);
@@ -30,7 +30,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   // Save flashcards to localStorage whenever savedDecks changes
   useEffect(() => {
     try {
-      localStorage.setItem('studyflow-flashcards', JSON.stringify(savedDecks));
+      localStorage.setItem('cognara-flashcards', JSON.stringify(savedDecks));
     } catch (error) {
       console.error('Error saving flashcards to localStorage:', error);
     }

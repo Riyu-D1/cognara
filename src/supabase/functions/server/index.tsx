@@ -21,7 +21,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 // Health check
 app.get('/make-server-e4147917/health', (c) => {
-  return c.json({ status: 'StudyFlow Auth Server running' })
+  return c.json({ status: 'Cognara Auth Server running' })
 })
 
 // User signup route
@@ -46,7 +46,7 @@ app.post('/make-server-e4147917/signup', async (c) => {
       password,
       user_metadata: { 
         name: name?.trim() || email.split('@')[0],
-        app: 'StudyFlow'
+        app: 'Cognara'
       },
       // Automatically confirm the user's email since an email server hasn't been configured.
       email_confirm: true
@@ -161,7 +161,7 @@ app.put('/make-server-e4147917/profile', async (c) => {
 })
 
 // Initialize OAuth providers on startup
-console.log('StudyFlow Auth Server starting...')
+console.log('Cognara Auth Server starting...')
 console.log('OAuth providers available: Google, GitHub, Discord')
 console.log('Remember to configure OAuth providers in Supabase dashboard')
 

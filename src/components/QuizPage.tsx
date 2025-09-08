@@ -69,7 +69,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [savedQuizzes, setSavedQuizzes] = useState<{id: number; title: string; questions: Question[]; createdAt: string}[]>(() => {
     try {
-      const storedQuizzes = localStorage.getItem('studyflow-quizzes');
+      const storedQuizzes = localStorage.getItem('cognara-quizzes');
       return storedQuizzes ? JSON.parse(storedQuizzes) : [];
     } catch (error) {
       console.error('Error loading quizzes from localStorage:', error);
@@ -81,7 +81,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   // Save quizzes to localStorage whenever savedQuizzes changes
   useEffect(() => {
     try {
-      localStorage.setItem('studyflow-quizzes', JSON.stringify(savedQuizzes));
+      localStorage.setItem('cognara-quizzes', JSON.stringify(savedQuizzes));
     } catch (error) {
       console.error('Error saving quizzes to localStorage:', error);
     }

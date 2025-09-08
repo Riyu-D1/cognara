@@ -57,7 +57,7 @@ export default function AITest() {
   });
   const [savedChats, setSavedChats] = useState<Chat[]>(() => {
     try {
-      const storedChats = localStorage.getItem('studyflow-ai-chats');
+      const storedChats = localStorage.getItem('cognara-ai-chats');
       return storedChats ? JSON.parse(storedChats, (key, value) => {
         // Convert timestamp strings back to Date objects
         if (key === 'timestamp' || key === 'createdAt') {
@@ -74,7 +74,7 @@ export default function AITest() {
   // Save AI chats to localStorage whenever savedChats changes
   useEffect(() => {
     try {
-      localStorage.setItem('studyflow-ai-chats', JSON.stringify(savedChats));
+      localStorage.setItem('cognara-ai-chats', JSON.stringify(savedChats));
     } catch (error) {
       console.error('Error saving AI chats to localStorage:', error);
     }

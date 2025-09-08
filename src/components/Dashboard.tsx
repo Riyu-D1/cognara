@@ -97,7 +97,7 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
           </div>
           <div className="hidden md:flex items-center space-x-2">
             <div className="w-3 h-3 bg-accent rounded-full animate-pulse clay-glow-accent"></div>
-            <span className="text-muted-foreground text-sm">StudyFlow Active</span>
+            <span className="text-muted-foreground text-sm">Cognara Active</span>
           </div>
         </div>
       </div>

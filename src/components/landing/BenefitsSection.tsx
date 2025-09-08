@@ -19,7 +19,7 @@ export function BenefitsSection({ onTryApp }: BenefitsSectionProps) {
           <motion.div {...slideInLeft}>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-8">
               Why Students
-              <span className="bg-gradient-to-r from-primary to-accent-cyan bg-clip-text text-transparent"> Love StudyFlow</span>
+              <span className="bg-gradient-to-r from-primary to-accent-cyan bg-clip-text text-transparent"> Love Cognara</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
               Join thousands of students who have transformed their learning experience and achieved better results.

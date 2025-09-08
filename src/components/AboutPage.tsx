@@ -81,7 +81,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center clay-glow-primary">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-foreground">About StudyFlow</span>
+              <span className="font-semibold text-foreground">About Cognara</span>
             </div>
             
             <div 
@@ -91,7 +91,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <div className="drawing-button__line"></div>
               <div className="drawing-button__line"></div>
               <div className="drawing-button__text">
-                Try StudyFlow
+                Try Cognara
               </div>
               <div className="drawing-button__drow1"></div>
               <div className="drawing-button__drow2"></div>
@@ -127,7 +127,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               variants={fadeInUp}
               className="text-xl text-muted-foreground leading-relaxed"
             >
-              StudyFlow was born from a simple yet powerful vision: to harness the potential of artificial intelligence 
+              Cognara was born from a simple yet powerful vision: to harness the potential of artificial intelligence 
               to transform how students learn, study, and achieve their academic goals.
             </motion.p>
           </motion.div>
@@ -293,7 +293,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"> Journey</span>
             </h2>
             <p className="text-xl text-muted-foreground">
-              From concept to reality - the StudyFlow timeline
+              From concept to reality - the Cognara timeline
             </p>
           </motion.div>
 
@@ -328,7 +328,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               Join Our Mission
             </h2>
             <p className="text-xl text-white/90 mb-8 leading-relaxed">
-              Be part of the learning revolution. Experience the future of education with StudyFlow.
+              Be part of the learning revolution. Experience the future of education with Cognara.
             </p>
             <div 
               onClick={onTryApp}
@@ -355,7 +355,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-foreground">StudyFlow</span>
+              <span className="font-semibold text-foreground">Cognara</span>
             </div>
             
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
@@ -367,7 +367,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
           </div>
           
           <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            © 2024 StudyFlow. Empowering students to achieve more.
+            © 2025 Cognara. Empowering students to achieve more.
           </div>
         </div>
       </footer>
