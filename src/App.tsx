@@ -15,12 +15,55 @@ import { CalendarPage } from './components/CalendarPage';
 import { Sidebar } from './components/Sidebar';
 import { Toaster } from './components/ui/sonner';
 import { Screen } from './utils/constants';
+import { debugStorage } from './utils/debugStorage';
 import './utils/storage'; // Import storage utilities for global access
 
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
-  const [hasAccessedApp, setHasAccessedApp] = useState(false);
+  // Initialize state from localStorage
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
+    try {
+      const saved = localStorage.getItem('studyflow-current-screen');
+      return (saved as Screen) || 'landing';
+    } catch {
+      return 'landing';
+    }
+  });
+  
+  const [hasAccessedApp, setHasAccessedApp] = useState(() => {
+    try {
+      return localStorage.getItem('studyflow-has-accessed-app') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const { user, loading, signOut } = useAuth();
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('studyflow-current-screen', currentScreen);
+    } catch (error) {
+      console.error('Error saving current screen to localStorage:', error);
+    }
+  }, [currentScreen]);
+
+  // Debug localStorage on app load
+  useEffect(() => {
+    console.log('🚀 App initialized - checking localStorage...');
+    debugStorage();
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('studyflow-has-accessed-app', hasAccessedApp.toString());
+    } catch (error) {
+      console.error('Error saving hasAccessedApp to localStorage:', error);
+    }
+  }, [hasAccessedApp]);
 
   const handleTryApp = () => {
     setHasAccessedApp(true);
@@ -42,14 +85,30 @@ function AppContent() {
     await signOut();
     setCurrentScreen('landing');
     setHasAccessedApp(false);
+    // Clear navigation state from localStorage on logout
+    try {
+      localStorage.removeItem('studyflow-current-screen');
+      localStorage.removeItem('studyflow-has-accessed-app');
+    } catch (error) {
+      console.error('Error clearing navigation state from localStorage:', error);
+    }
   };
 
-  // Auto-navigate to dashboard if user is already authenticated
+  // Auto-navigate to dashboard only on first initialization or when needed
   useEffect(() => {
-    if (user && hasAccessedApp) {
-      setCurrentScreen('dashboard');
+    if (!isInitialized && !loading) {
+      setIsInitialized(true);
+      
+      if (user && hasAccessedApp) {
+        // Only redirect to dashboard if there's no saved screen or if saved screen is landing/about
+        const savedScreen = localStorage.getItem('studyflow-current-screen');
+        if (!savedScreen || savedScreen === 'landing' || savedScreen === 'about') {
+          setCurrentScreen('dashboard');
+        }
+        // Otherwise, keep the current screen (which was loaded from localStorage)
+      }
     }
-  }, [user, hasAccessedApp]);
+  }, [user, hasAccessedApp, loading, isInitialized]);
 
   if (loading) {
     return (
@@ -109,12 +168,12 @@ function AppContent() {
                 onNavigate={setCurrentScreen} 
               />
             )}
-            {currentScreen === 'notes' && <NotesPage onNavigate={setCurrentScreen} />}
-            {currentScreen === 'flashcards' && <FlashcardsPage onNavigate={setCurrentScreen} />}
-            {currentScreen === 'quiz' && <QuizPage onNavigate={setCurrentScreen} />}
-            {currentScreen === 'ai' && <AIPage onNavigate={setCurrentScreen} />}
-            {currentScreen === 'social' && <SocialPage onNavigate={setCurrentScreen} />}
-            {currentScreen === 'calendar' && <CalendarPage onNavigate={setCurrentScreen} />}
+            {currentScreen === 'notes' && <NotesPage key="notes-page" onNavigate={setCurrentScreen} />}
+            {currentScreen === 'flashcards' && <FlashcardsPage key="flashcards-page" onNavigate={setCurrentScreen} />}
+            {currentScreen === 'quiz' && <QuizPage key="quiz-page" onNavigate={setCurrentScreen} />}
+            {currentScreen === 'ai' && <AIPage key="ai-page" onNavigate={setCurrentScreen} />}
+            {currentScreen === 'social' && <SocialPage key="social-page" onNavigate={setCurrentScreen} />}
+            {currentScreen === 'calendar' && <CalendarPage key="calendar-page" onNavigate={setCurrentScreen} />}
             {currentScreen === 'settings' && (
               <SettingsPage 
                 userName={user?.name || user?.email?.split('@')[0] || 'User'} 

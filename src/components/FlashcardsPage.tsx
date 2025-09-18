@@ -17,12 +17,22 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   const [newCards, setNewCards] = useState<{front: string; back: string}[]>([{front: '', back: ''}]);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
+  
+  // Initialize savedDecks with proper error handling and logging
   const [savedDecks, setSavedDecks] = useState(() => {
     try {
-      const storedDecks = localStorage.getItem('cognara-flashcards');
-      return storedDecks ? JSON.parse(storedDecks) : mockFlashcardDecks;
+      console.log('🔍 FlashcardsPage: Initializing flashcards from localStorage...');
+      const storedDecks = localStorage.getItem('studyflow-flashcards');
+      if (storedDecks) {
+        const parsed = JSON.parse(storedDecks);
+        console.log('✅ FlashcardsPage: Loaded', parsed.length, 'decks from localStorage');
+        return parsed;
+      } else {
+        console.log('📋 FlashcardsPage: No saved decks found, using mock data');
+        return mockFlashcardDecks;
+      }
     } catch (error) {
-      console.error('Error loading flashcards from localStorage:', error);
+      console.error('❌ FlashcardsPage: Error loading flashcards from localStorage:', error);
       return mockFlashcardDecks;
     }
   });
@@ -30,15 +40,17 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   // Save flashcards to localStorage whenever savedDecks changes
   useEffect(() => {
     try {
-      localStorage.setItem('cognara-flashcards', JSON.stringify(savedDecks));
+      console.log('💾 FlashcardsPage: Saving', savedDecks.length, 'decks to localStorage');
+      localStorage.setItem('studyflow-flashcards', JSON.stringify(savedDecks));
+      console.log('✅ FlashcardsPage: Successfully saved flashcards to localStorage');
     } catch (error) {
-      console.error('Error saving flashcards to localStorage:', error);
+      console.error('❌ FlashcardsPage: Error saving flashcards to localStorage:', error);
     }
   }, [savedDecks]);
 
   const getCurrentDeck = () => {
     if (selectedDeck === null) return null;
-    return savedDecks.find(deck => deck.id === selectedDeck);
+    return savedDecks.find((deck: any) => deck.id === selectedDeck);
   };
 
   const flipCard = (deckId: number, cardId: number) => {
@@ -82,7 +94,12 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   };
 
   const saveFlashcardSet = () => {
-    if (!newSetTitle.trim() || newCards.length === 0 || !newCards.some(card => card.front.trim() && card.back.trim())) return;
+    if (!newSetTitle.trim() || newCards.length === 0 || !newCards.some(card => card.front.trim() && card.back.trim())) {
+      console.log('⚠️ FlashcardsPage: Cannot save deck - missing title or valid cards');
+      return;
+    }
+    
+    console.log('📝 FlashcardsPage: Creating new flashcard deck:', newSetTitle);
     
     const newDeck = {
       id: Date.now(),
@@ -99,10 +116,12 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
       lastStudied: 'Never'
     };
 
+    console.log('➕ FlashcardsPage: Adding new deck to savedDecks, current count:', savedDecks.length);
+    
     // Add new deck to saved decks
     setSavedDecks([newDeck, ...savedDecks]);
     
-    console.log('Flashcard deck saved successfully:', newDeck);
+    console.log('✅ FlashcardsPage: Flashcard deck saved successfully:', newDeck.title);
     resetCreateForm();
     setViewMode('grid');
   };

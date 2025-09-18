@@ -57,7 +57,7 @@ export default function AITest() {
   });
   const [savedChats, setSavedChats] = useState<Chat[]>(() => {
     try {
-      const storedChats = localStorage.getItem('cognara-ai-chats');
+      const storedChats = localStorage.getItem('studyflow-ai-chats');
       return storedChats ? JSON.parse(storedChats, (key, value) => {
         // Convert timestamp strings back to Date objects
         if (key === 'timestamp' || key === 'createdAt') {
@@ -74,11 +74,39 @@ export default function AITest() {
   // Save AI chats to localStorage whenever savedChats changes
   useEffect(() => {
     try {
-      localStorage.setItem('cognara-ai-chats', JSON.stringify(savedChats));
+      localStorage.setItem('studyflow-ai-chats', JSON.stringify(savedChats));
     } catch (error) {
       console.error('Error saving AI chats to localStorage:', error);
     }
   }, [savedChats]);
+
+  // Auto-save current chat when messages are added (but not the initial AI greeting)
+  useEffect(() => {
+    if (currentChat.messages.length > 1) {
+      // Update chat title with first user message if it's still "New Chat"
+      const updatedChat = { ...currentChat };
+      if (updatedChat.title === 'New Chat') {
+        const firstUserMessage = updatedChat.messages.find(msg => msg.sender === 'user');
+        if (firstUserMessage) {
+          updatedChat.title = firstUserMessage.text.substring(0, 50) + (firstUserMessage.text.length > 50 ? '...' : '');
+        }
+      }
+
+      setSavedChats(prev => {
+        // Check if this chat already exists in saved chats
+        const existingIndex = prev.findIndex(chat => chat.id === updatedChat.id);
+        if (existingIndex !== -1) {
+          // Update existing chat
+          const updatedChats = [...prev];
+          updatedChats[existingIndex] = updatedChat;
+          return updatedChats;
+        } else {
+          // Add new chat to the beginning
+          return [updatedChat, ...prev];
+        }
+      });
+    }
+  }, [currentChat.messages.length, currentChat.id]);
 
   const sendMessage = async () => {
     if (!currentMessage.trim()) return;
@@ -241,10 +269,7 @@ Format as clear, organized study material.`;
   };
 
   const startNewChat = () => {
-    // Save current chat if it has messages
-    if (currentChat.messages.length > 1) {
-      setSavedChats(prev => [currentChat, ...prev]);
-    }
+    // Current chat is already auto-saved by useEffect, no need to manually save
     
     setCurrentChat({
       id: Date.now().toString(),

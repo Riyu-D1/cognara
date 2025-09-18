@@ -159,6 +159,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           console.log('Setting user data:', userData)
           setUser(userData)
+          
+          // User signed in successfully
+          if (event === 'SIGNED_IN' || (event === 'TOKEN_REFRESHED' && userData.id)) {
+            console.log('User signed in:', userData.id);
+          }
         } else {
           setUser(null)
         }

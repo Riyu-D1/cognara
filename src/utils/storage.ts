@@ -1,25 +1,29 @@
-// Cognara Data Storage Utilities
+// StudyFlow Data Storage Utilities
 
-export const clearAllCognaraData = () => {
+export const clearAllStudyFlowData = () => {
   try {
-    localStorage.removeItem('cognara-notes');
-    localStorage.removeItem('cognara-flashcards');
-    localStorage.removeItem('cognara-quizzes');
-    localStorage.removeItem('cognara-ai-chats');
-    console.log('✅ All Cognara data cleared successfully');
+    localStorage.removeItem('studyflow-notes');
+    localStorage.removeItem('studyflow-flashcards');
+    localStorage.removeItem('studyflow-quizzes');
+    localStorage.removeItem('studyflow-ai-chats');
+    localStorage.removeItem('studyflow-current-screen');
+    localStorage.removeItem('studyflow-has-accessed-app');
+    console.log('✅ All StudyFlow data cleared successfully');
     window.location.reload(); // Reload to reset components
   } catch (error) {
-    console.error('❌ Error clearing Cognara data:', error);
+    console.error('❌ Error clearing StudyFlow data:', error);
   }
 };
 
-export const exportCognaraData = () => {
+export const exportStudyFlowData = () => {
   try {
     const data = {
-      notes: localStorage.getItem('cognara-notes'),
-      flashcards: localStorage.getItem('cognara-flashcards'),
-      quizzes: localStorage.getItem('cognara-quizzes'),
-      aiChats: localStorage.getItem('cognara-ai-chats'),
+      notes: localStorage.getItem('studyflow-notes'),
+      flashcards: localStorage.getItem('studyflow-flashcards'),
+      quizzes: localStorage.getItem('studyflow-quizzes'),
+      aiChats: localStorage.getItem('studyflow-ai-chats'),
+      currentScreen: localStorage.getItem('studyflow-current-screen'),
+      hasAccessedApp: localStorage.getItem('studyflow-has-accessed-app'),
       exportDate: new Date().toISOString()
     };
     
@@ -27,30 +31,34 @@ export const exportCognaraData = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cognara-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `studyflow-backup-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    console.log('✅ Cognara data exported successfully');
+    console.log('✅ StudyFlow data exported successfully');
   } catch (error) {
-    console.error('❌ Error exporting Cognara data:', error);
+    console.error('❌ Error exporting StudyFlow data:', error);
   }
 };
 
 export const getStorageStats = () => {
   try {
-    const notes = localStorage.getItem('cognara-notes');
-    const flashcards = localStorage.getItem('cognara-flashcards');
-    const quizzes = localStorage.getItem('cognara-quizzes');
-    const aiChats = localStorage.getItem('cognara-ai-chats');
-
-    console.log('📊 Cognara Storage Stats:');
+    const notes = localStorage.getItem('studyflow-notes');
+    const flashcards = localStorage.getItem('studyflow-flashcards');
+    const quizzes = localStorage.getItem('studyflow-quizzes');
+    const aiChats = localStorage.getItem('studyflow-ai-chats');
+    const currentScreen = localStorage.getItem('studyflow-current-screen');
+    const hasAccessedApp = localStorage.getItem('studyflow-has-accessed-app');
+    
+    console.log('📊 StudyFlow Storage Stats:');
     console.log('Notes:', notes ? JSON.parse(notes).length : 0, 'items');
     console.log('Flashcard Decks:', flashcards ? JSON.parse(flashcards).length : 0, 'items');
     console.log('Quizzes:', quizzes ? JSON.parse(quizzes).length : 0, 'items');
     console.log('AI Chats:', aiChats ? JSON.parse(aiChats).length : 0, 'items');
+    console.log('Current Screen:', currentScreen || 'not set');
+    console.log('Has Accessed App:', hasAccessedApp === 'true' ? 'yes' : 'no');
   } catch (error) {
     console.error('❌ Error getting storage stats:', error);
   }
@@ -58,7 +66,7 @@ export const getStorageStats = () => {
 
 // Make functions available globally for debugging
 if (typeof window !== 'undefined') {
-  (window as any).clearAllCognaraData = clearAllCognaraData;
-  (window as any).exportCognaraData = exportCognaraData;
+  (window as any).clearAllStudyFlowData = clearAllStudyFlowData;
+  (window as any).exportStudyFlowData = exportStudyFlowData;
   (window as any).getStorageStats = getStorageStats;
 }

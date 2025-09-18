@@ -17,7 +17,7 @@ Authentication has been temporarily disabled to allow frontend development witho
 const mockUser = {
   id: 'dev-user-123',
   name: 'Dev User',
-  email: 'developer@studyflow.com',
+  email: 'developer@Cognara.com',
   avatar_url: null,
   provider: 'mock'
 };

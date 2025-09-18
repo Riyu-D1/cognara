@@ -52,10 +52,10 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null);
 
-  // Enhanced mock notes with substantial content
+  // Simple localStorage state management
   const [savedNotes, setSavedNotes] = useState<Note[]>(() => {
     try {
-      const storedNotes = localStorage.getItem('cognara-notes');
+      const storedNotes = localStorage.getItem('studyflow-notes');
       return storedNotes ? JSON.parse(storedNotes) : mockNotes;
     } catch (error) {
       console.error('Error loading notes from localStorage:', error);
@@ -66,7 +66,7 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
   // Save notes to localStorage whenever savedNotes changes
   useEffect(() => {
     try {
-      localStorage.setItem('cognara-notes', JSON.stringify(savedNotes));
+      localStorage.setItem('studyflow-notes', JSON.stringify(savedNotes));
     } catch (error) {
       console.error('Error saving notes to localStorage:', error);
     }
