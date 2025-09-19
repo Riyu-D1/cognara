@@ -68,21 +68,30 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   }]);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
-  const [savedQuizzes, setSavedQuizzes] = useState<{id: number; title: string; questions: Question[]; createdAt: string}[]>(() => {
-    try {
-      const storedQuizzes = localStorage.getItem('studyflow-quizzes');
-      return storedQuizzes ? JSON.parse(storedQuizzes) : [];
-    } catch (error) {
-      console.error('Error loading quizzes from localStorage:', error);
-      return [];
-    }
-  });
+  // Wait for hybridSyncService to be ready before loading quizzes from localStorage
+  const [savedQuizzes, setSavedQuizzes] = useState<{id: number; title: string; questions: Question[]; createdAt: string}[]>([]);
+  const [quizzesReady, setQuizzesReady] = useState(false);
+
+  useEffect(() => {
+    hybridSyncService.onReady(() => {
+      try {
+        const storedQuizzes = localStorage.getItem('studyflow-quizzes');
+        setSavedQuizzes(storedQuizzes ? JSON.parse(storedQuizzes) : []);
+      } catch (error) {
+        console.error('Error loading quizzes from localStorage:', error);
+        setSavedQuizzes([]);
+      }
+      setQuizzesReady(true);
+    });
+  }, []);
   const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
 
   // Save quizzes using hybrid sync (localStorage + database)
   useEffect(() => {
-    hybridSyncService.saveData('studyflow-quizzes', savedQuizzes);
-  }, [savedQuizzes]);
+    if (quizzesReady) {
+      hybridSyncService.saveData('studyflow-quizzes', savedQuizzes);
+    }
+  }, [savedQuizzes, quizzesReady]);
 
   // Initial quiz questions
   const questions: Question[] = [

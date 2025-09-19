@@ -53,21 +53,31 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null);
 
-  // Simple localStorage state management
-  const [savedNotes, setSavedNotes] = useState<Note[]>(() => {
-    try {
-      const storedNotes = localStorage.getItem('studyflow-notes');
-      return storedNotes ? JSON.parse(storedNotes) : mockNotes;
-    } catch (error) {
-      console.error('Error loading notes from localStorage:', error);
-      return mockNotes;
-    }
-  });
+
+  // Wait for hybridSyncService to be ready before loading notes from localStorage
+  const [savedNotes, setSavedNotes] = useState<Note[]>([]);
+  const [notesReady, setNotesReady] = useState(false);
+
+  useEffect(() => {
+    hybridSyncService.onReady(() => {
+      try {
+        const storedNotes = localStorage.getItem('studyflow-notes');
+        setSavedNotes(storedNotes ? JSON.parse(storedNotes) : mockNotes);
+      } catch (error) {
+        console.error('Error loading notes from localStorage:', error);
+        setSavedNotes(mockNotes);
+      }
+      setNotesReady(true);
+    });
+  }, []);
+
 
   // Save notes using hybrid sync (localStorage + database)
   useEffect(() => {
-    hybridSyncService.saveData('studyflow-notes', savedNotes);
-  }, [savedNotes]);
+    if (notesReady) {
+      hybridSyncService.saveData('studyflow-notes', savedNotes);
+    }
+  }, [savedNotes, notesReady]);
 
   const handleSummarize = () => {
     setIsProcessing(true);

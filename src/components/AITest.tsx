@@ -56,26 +56,34 @@ export default function AITest() {
     ],
     createdAt: new Date()
   });
-  const [savedChats, setSavedChats] = useState<Chat[]>(() => {
-    try {
-      const storedChats = localStorage.getItem('studyflow-ai-chats');
-      return storedChats ? JSON.parse(storedChats, (key, value) => {
-        // Convert timestamp strings back to Date objects
-        if (key === 'timestamp' || key === 'createdAt') {
-          return new Date(value);
-        }
-        return value;
-      }) : [];
-    } catch (error) {
-      console.error('Error loading AI chats from localStorage:', error);
-      return [];
-    }
-  });
+  // Wait for hybridSyncService to be ready before loading chats from localStorage
+  const [savedChats, setSavedChats] = useState<Chat[]>([]);
+  const [chatsReady, setChatsReady] = useState(false);
+
+  useEffect(() => {
+    hybridSyncService.onReady(() => {
+      try {
+        const storedChats = localStorage.getItem('studyflow-ai-chats');
+        setSavedChats(storedChats ? JSON.parse(storedChats, (key, value) => {
+          if (key === 'timestamp' || key === 'createdAt') {
+            return new Date(value);
+          }
+          return value;
+        }) : []);
+      } catch (error) {
+        console.error('Error loading AI chats from localStorage:', error);
+        setSavedChats([]);
+      }
+      setChatsReady(true);
+    });
+  }, []);
 
   // Save AI chats using hybrid sync (localStorage + database)
   useEffect(() => {
-    hybridSyncService.saveData('studyflow-ai-chats', savedChats);
-  }, [savedChats]);
+    if (chatsReady) {
+      hybridSyncService.saveData('studyflow-ai-chats', savedChats);
+    }
+  }, [savedChats, chatsReady]);
 
   // Auto-save current chat when messages are added (but not the initial AI greeting)
   useEffect(() => {

@@ -19,29 +19,31 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
   
-  // Initialize savedDecks with proper error handling and logging
-  const [savedDecks, setSavedDecks] = useState(() => {
-    try {
-      console.log('🔍 FlashcardsPage: Initializing flashcards from localStorage...');
-      const storedDecks = localStorage.getItem('studyflow-flashcards');
-      if (storedDecks) {
-        const parsed = JSON.parse(storedDecks);
-        console.log('✅ FlashcardsPage: Loaded', parsed.length, 'decks from localStorage');
-        return parsed;
-      } else {
-        console.log('📋 FlashcardsPage: No saved decks found, using mock data');
-        return mockFlashcardDecks;
+
+  // Wait for hybridSyncService to be ready before loading decks from localStorage
+  const [savedDecks, setSavedDecks] = useState<any[]>([]);
+  const [decksReady, setDecksReady] = useState(false);
+
+  useEffect(() => {
+    hybridSyncService.onReady(() => {
+      try {
+        const storedDecks = localStorage.getItem('studyflow-flashcards');
+        setSavedDecks(storedDecks ? JSON.parse(storedDecks) : mockFlashcardDecks);
+      } catch (error) {
+        console.error('❌ FlashcardsPage: Error loading flashcards from localStorage:', error);
+        setSavedDecks(mockFlashcardDecks);
       }
-    } catch (error) {
-      console.error('❌ FlashcardsPage: Error loading flashcards from localStorage:', error);
-      return mockFlashcardDecks;
-    }
-  });
+      setDecksReady(true);
+    });
+  }, []);
+
 
   // Save flashcards using hybrid sync (localStorage + database)
   useEffect(() => {
-    hybridSyncService.saveData('studyflow-flashcards', savedDecks);
-  }, [savedDecks]);
+    if (decksReady) {
+      hybridSyncService.saveData('studyflow-flashcards', savedDecks);
+    }
+  }, [savedDecks, decksReady]);
 
   const getCurrentDeck = () => {
     if (selectedDeck === null) return null;

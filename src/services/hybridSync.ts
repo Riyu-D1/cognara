@@ -1,5 +1,6 @@
 import { supabase } from '../utils/supabase/client';
 
+
 // Hybrid sync service - saves to localStorage for fast access AND Supabase for cross-device sync
 export class HybridSyncService {
   private static instance: HybridSyncService;
@@ -7,6 +8,21 @@ export class HybridSyncService {
   private isOnline = navigator.onLine;
   private pendingSync: Set<string> = new Set();
   private syncTimeout: NodeJS.Timeout | null = null;
+
+  private ready = false;
+  private readyCallbacks: Array<() => void> = [];
+
+  isReady() {
+    return this.ready;
+  }
+
+  onReady(cb: () => void) {
+    if (this.ready) {
+      cb();
+    } else {
+      this.readyCallbacks.push(cb);
+    }
+  }
 
   static getInstance(): HybridSyncService {
     if (!HybridSyncService.instance) {
@@ -28,14 +44,17 @@ export class HybridSyncService {
 
   // Initialize when user logs in
   async initializeForUser(userId: string): Promise<void> {
-    console.log('🚀 HybridSync: Initializing for user', userId);
-    this.userId = userId;
-    
-    // Load data from database first, then merge with localStorage
-    await this.loadFromDatabase();
-    
-    // Start background sync
-    this.startPeriodicSync();
+  console.log('🚀 HybridSync: Initializing for user', userId);
+  this.userId = userId;
+  this.ready = false;
+  // Load data from database first, then merge with localStorage
+  await this.loadFromDatabase();
+  this.ready = true;
+  // Call all ready callbacks
+  this.readyCallbacks.forEach(cb => cb());
+  this.readyCallbacks = [];
+  // Start background sync
+  this.startPeriodicSync();
   }
 
   // Load data from database and merge with localStorage
@@ -475,6 +494,8 @@ export class HybridSyncService {
       clearTimeout(this.syncTimeout);
       this.syncTimeout = null;
     }
+    this.ready = false;
+    this.readyCallbacks = [];
     console.log('🧹 HybridSync cleared for logout');
   }
 }
