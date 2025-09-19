@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ContentInputOptions } from './ContentInputOptions';
+import { hybridSyncService } from '../services/hybridSync';
 import { 
   Sparkles, 
   Bold, 
@@ -63,13 +64,9 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
     }
   });
 
-  // Save notes to localStorage whenever savedNotes changes
+  // Save notes using hybrid sync (localStorage + database)
   useEffect(() => {
-    try {
-      localStorage.setItem('studyflow-notes', JSON.stringify(savedNotes));
-    } catch (error) {
-      console.error('Error saving notes to localStorage:', error);
-    }
+    hybridSyncService.saveData('studyflow-notes', savedNotes);
   }, [savedNotes]);
 
   const handleSummarize = () => {

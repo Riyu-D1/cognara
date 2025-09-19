@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ContentInputOptions } from './ContentInputOptions';
+import { hybridSyncService } from '../services/hybridSync';
 import { 
   Bot, 
   MessageCircle, 
@@ -71,13 +72,9 @@ export default function AITest() {
     }
   });
 
-  // Save AI chats to localStorage whenever savedChats changes
+  // Save AI chats using hybrid sync (localStorage + database)
   useEffect(() => {
-    try {
-      localStorage.setItem('studyflow-ai-chats', JSON.stringify(savedChats));
-    } catch (error) {
-      console.error('Error saving AI chats to localStorage:', error);
-    }
+    hybridSyncService.saveData('studyflow-ai-chats', savedChats);
   }, [savedChats]);
 
   // Auto-save current chat when messages are added (but not the initial AI greeting)

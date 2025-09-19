@@ -4,6 +4,7 @@ import { FlashcardsStudy } from './flashcards/FlashcardsStudy';
 import { FlashcardsCreate } from './flashcards/FlashcardsCreate';
 import { mockFlashcardDecks } from '../utils/studyConstants';
 import { Screen } from '../utils/constants';
+import { hybridSyncService } from '../services/hybridSync';
 
 interface FlashcardsPageProps {
   onNavigate: (screen: Screen) => void;
@@ -37,15 +38,9 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
     }
   });
 
-  // Save flashcards to localStorage whenever savedDecks changes
+  // Save flashcards using hybrid sync (localStorage + database)
   useEffect(() => {
-    try {
-      console.log('💾 FlashcardsPage: Saving', savedDecks.length, 'decks to localStorage');
-      localStorage.setItem('studyflow-flashcards', JSON.stringify(savedDecks));
-      console.log('✅ FlashcardsPage: Successfully saved flashcards to localStorage');
-    } catch (error) {
-      console.error('❌ FlashcardsPage: Error saving flashcards to localStorage:', error);
-    }
+    hybridSyncService.saveData('studyflow-flashcards', savedDecks);
   }, [savedDecks]);
 
   const getCurrentDeck = () => {

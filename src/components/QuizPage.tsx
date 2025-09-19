@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ContentInputOptions } from './ContentInputOptions';
+import { hybridSyncService } from '../services/hybridSync';
 import { 
   CheckCircle, 
   XCircle, 
@@ -78,13 +79,9 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   });
   const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
 
-  // Save quizzes to localStorage whenever savedQuizzes changes
+  // Save quizzes using hybrid sync (localStorage + database)
   useEffect(() => {
-    try {
-      localStorage.setItem('studyflow-quizzes', JSON.stringify(savedQuizzes));
-    } catch (error) {
-      console.error('Error saving quizzes to localStorage:', error);
-    }
+    hybridSyncService.saveData('studyflow-quizzes', savedQuizzes);
   }, [savedQuizzes]);
 
   // Initial quiz questions

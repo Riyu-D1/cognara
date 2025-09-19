@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, getCurrentSession, getCurrentUser } from '../utils/supabase/client'
+import { hybridSyncService } from '../services/hybridSync'
 
 interface User {
   id: string
@@ -81,6 +82,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const handleSignOut = async () => {
     try {
       setLoading(true)
+      // Clear sync service data before signing out
+      hybridSyncService.clearUserData()
       await supabase.auth.signOut()
       setUser(null)
       setSession(null)
@@ -160,12 +163,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('Setting user data:', userData)
           setUser(userData)
           
-          // User signed in successfully
+          // Initialize hybrid sync service for cross-device persistence
           if (event === 'SIGNED_IN' || (event === 'TOKEN_REFRESHED' && userData.id)) {
-            console.log('User signed in:', userData.id);
+            hybridSyncService.initializeForUser(userData.id);
           }
         } else {
           setUser(null)
+          // Clear sync service when user logs out
+          hybridSyncService.clearUserData()
         }
         
         setLoading(false)
