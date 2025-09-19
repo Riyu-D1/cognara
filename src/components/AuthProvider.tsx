@@ -49,13 +49,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(currentSession)
       
       if (currentUser) {
-        setUser({
+        const userData = {
           id: currentUser.id,
           email: currentUser.email || '',
           name: currentUser.user_metadata?.name || currentUser.email?.split('@')[0],
           avatar_url: currentUser.user_metadata?.avatar_url,
           provider: currentUser.app_metadata?.provider
-        })
+        }
+        setUser(userData)
+
+        // Ensure hybrid sync initializes on initial load when user is already signed in
+        try {
+          await hybridSyncService.initializeForUser(userData.id)
+        } catch (e) {
+          console.log('Hybrid sync init (initial load) error:', e)
+        }
       } else {
         setUser(null)
       }

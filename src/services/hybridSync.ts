@@ -213,14 +213,41 @@ export class HybridSyncService {
     }
   }
 
+  // Helpers
+  private isValidUuid(id: any): boolean {
+    return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+  }
+
+  private uuidToNumericId(uuid: string): number {
+    // Simple hash to 53-bit safe integer
+    let hash = 0n;
+    const clean = uuid.replace(/-/g, '');
+    for (let i = 0; i < clean.length; i++) {
+      hash = (hash * 31n + BigInt(clean.charCodeAt(i))) & ((1n << 53n) - 1n);
+    }
+    return Number(hash);
+  }
+
+  private updateLocalDbId(key: string, localId: any, dbId: string) {
+    try {
+      const data = localStorage.getItem(key);
+      if (!data) return;
+      const arr = JSON.parse(data);
+      const updated = arr.map((item: any) => item && item.id === localId ? { ...item, db_id: dbId } : item);
+      localStorage.setItem(key, JSON.stringify(updated));
+      window.dispatchEvent(new StorageEvent('storage', { key, newValue: JSON.stringify(updated) }));
+    } catch {}
+  }
+
   // Database sync methods for each data type
   private async syncNotesToDB(notes: any[]): Promise<void> {
     for (const note of notes) {
-      // Upsert note (insert or update)
-      const { error } = await supabase
+      const idForUpsert = this.isValidUuid(note?.db_id) ? note.db_id : undefined;
+      // Upsert note (insert or update), return row to capture UUID
+      const { data, error } = await supabase
         .from('user_notes')
         .upsert({
-          id: note.id || undefined,
+          id: idForUpsert,
           user_id: this.userId,
           title: note.title || note.text?.substring(0, 50) || 'Untitled Note',
           content: note.content || note.text || '',
@@ -228,19 +255,26 @@ export class HybridSyncService {
           tags: note.tags || [],
           word_count: (note.content || note.text || '').split(' ').length,
           updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
+        }, { onConflict: 'id' })
+        .select()
+        .single();
       
-      if (error) console.error('Error syncing note:', error);
+      if (error) {
+        console.error('Error syncing note:', error);
+      } else if (data && !this.isValidUuid(note?.db_id)) {
+        this.updateLocalDbId('studyflow-notes', note.id, data.id);
+      }
     }
   }
 
   private async syncFlashcardsTooDB(decks: any[]): Promise<void> {
     for (const deck of decks) {
       // Insert/update deck
+      const deckIdForUpsert = this.isValidUuid(deck?.db_id) ? deck.db_id : undefined;
       const { data: deckData, error: deckError } = await supabase
         .from('user_flashcards')
         .upsert({
-          id: deck.id || undefined,
+          id: deckIdForUpsert,
           user_id: this.userId,
           title: deck.title || 'Untitled Deck',
           subject: deck.subject || 'General',
@@ -252,6 +286,10 @@ export class HybridSyncService {
       if (deckError) {
         console.error('Error syncing flashcard deck:', deckError);
         continue;
+      }
+
+      if (!this.isValidUuid(deck?.db_id) && deckData?.id) {
+        this.updateLocalDbId('studyflow-flashcards', deck.id, deckData.id);
       }
 
       // Sync cards
@@ -283,10 +321,11 @@ export class HybridSyncService {
   private async syncQuizzesToDB(quizzes: any[]): Promise<void> {
     for (const quiz of quizzes) {
       // Insert/update quiz
+      const quizIdForUpsert = this.isValidUuid(quiz?.db_id) ? quiz.db_id : undefined;
       const { data: quizData, error: quizError } = await supabase
         .from('user_quizzes')
         .upsert({
-          id: quiz.id || undefined,
+          id: quizIdForUpsert,
           user_id: this.userId,
           title: quiz.title || 'Untitled Quiz',
           updated_at: new Date().toISOString()
@@ -297,6 +336,10 @@ export class HybridSyncService {
       if (quizError) {
         console.error('Error syncing quiz:', quizError);
         continue;
+      }
+
+      if (!this.isValidUuid(quiz?.db_id) && quizData?.id) {
+        this.updateLocalDbId('studyflow-quizzes', quiz.id, quizData.id);
       }
 
       // Sync questions
@@ -331,10 +374,11 @@ export class HybridSyncService {
   private async syncChatsToDb(chats: any[]): Promise<void> {
     for (const chat of chats) {
       // Insert/update chat
+      const chatIdForUpsert = this.isValidUuid(chat?.db_id) ? chat.db_id : undefined;
       const { data: chatData, error: chatError } = await supabase
         .from('ai_chats')
         .upsert({
-          id: chat.id || undefined,
+          id: chatIdForUpsert,
           user_id: this.userId,
           title: chat.title || 'New Chat',
           updated_at: new Date().toISOString()
@@ -345,6 +389,10 @@ export class HybridSyncService {
       if (chatError) {
         console.error('Error syncing chat:', chatError);
         continue;
+      }
+
+      if (!this.isValidUuid(chat?.db_id) && chatData?.id) {
+        this.updateLocalDbId('studyflow-ai-chats', chat.id, chatData.id);
       }
 
       // Sync messages
@@ -386,8 +434,17 @@ export class HybridSyncService {
       console.error('Error loading notes:', error);
       return [];
     }
-    
-    return data || [];
+    // Map to local shape with numeric id and db_id
+    return (data || []).map((n: any) => ({
+      id: this.uuidToNumericId(n.id),
+      db_id: n.id,
+      title: n.title,
+      content: n.content,
+      subject: n.subject || 'General',
+      tags: n.tags || [],
+      wordCount: n.word_count || 0,
+      lastModified: n.updated_at || new Date().toISOString()
+    }));
   }
 
   private async loadFlashcardsFromDB(): Promise<any[]> {
@@ -404,11 +461,17 @@ export class HybridSyncService {
       console.error('Error loading flashcards:', decksError);
       return [];
     }
-    
-    return decks?.map(deck => ({
-      ...deck,
-      cards: deck.cards || []
-    })) || [];
+    // Map to local shape with numeric id and db_id
+    return (decks || []).map((deck: any) => ({
+      id: this.uuidToNumericId(deck.id),
+      db_id: deck.id,
+      title: deck.title,
+      subject: deck.subject || 'General',
+      cards: (deck.cards || []).map((c: any) => ({
+        front: c.front_text,
+        back: c.back_text
+      }))
+    }));
   }
 
   private async loadQuizzesFromDB(): Promise<any[]> {
@@ -425,8 +488,20 @@ export class HybridSyncService {
       console.error('Error loading quizzes:', quizzesError);
       return [];
     }
-    
-    return quizzes || [];
+    return (quizzes || []).map((q: any) => ({
+      id: this.uuidToNumericId(q.id),
+      db_id: q.id,
+      title: q.title,
+      questions: (q.questions || []).map((qq: any) => ({
+        id: this.uuidToNumericId(qq.id),
+        question: qq.question_text,
+        options: qq.options || [],
+        correctAnswer: typeof qq.correct_answer === 'number' ? qq.correct_answer : 0,
+        explanation: qq.explanation || '',
+        subject: qq.subject || 'General'
+      })),
+      createdAt: q.created_at
+    }));
   }
 
   private async loadChatsFromDB(): Promise<any[]> {
@@ -443,8 +518,19 @@ export class HybridSyncService {
       console.error('Error loading chats:', chatsError);
       return [];
     }
-    
-    return chats || [];
+    return (chats || []).map((c: any) => ({
+      id: String(this.uuidToNumericId(c.id)),
+      db_id: c.id,
+      title: c.title,
+      messages: (c.messages || []).map((m: any) => ({
+        id: String(this.uuidToNumericId(m.id)),
+        text: m.message_text,
+        sender: m.sender,
+        timestamp: new Date(m.created_at),
+        type: m.message_type || 'chat'
+      })),
+      createdAt: new Date(c.created_at)
+    }));
   }
 
   // Periodic sync
