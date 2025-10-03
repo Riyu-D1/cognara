@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ContentInputOptions } from './ContentInputOptions';
-import { hybridSyncService } from '../services/hybridSync';
+import { AIConnectionTest } from './AIConnectionTest';
 import { 
   Bot, 
   MessageCircle, 
@@ -39,7 +39,7 @@ interface Chat {
 }
 
 export default function AITest() {
-  const [viewMode, setViewMode] = useState<'chat' | 'youtube' | 'history'>('chat');
+  const [viewMode, setViewMode] = useState<'chat' | 'youtube' | 'history' | 'test'>('chat');
   const [currentMessage, setCurrentMessage] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,12 +56,13 @@ export default function AITest() {
     ],
     createdAt: new Date()
   });
-  // Wait for hybridSyncService to be ready before loading chats from localStorage
+  // Wait for component to be ready before loading chats from localStorage
   const [savedChats, setSavedChats] = useState<Chat[]>([]);
   const [chatsReady, setChatsReady] = useState(false);
 
   useEffect(() => {
-    hybridSyncService.onReady(() => {
+    // Simple initialization without hybridSync
+    setTimeout(() => {
       try {
         const storedChats = localStorage.getItem('studyflow-ai-chats');
         setSavedChats(storedChats ? JSON.parse(storedChats, (key, value) => {
@@ -75,13 +76,17 @@ export default function AITest() {
         setSavedChats([]);
       }
       setChatsReady(true);
-    });
+    }, 100);
   }, []);
 
-  // Save AI chats using hybrid sync (localStorage + database)
+  // Save AI chats using localStorage
   useEffect(() => {
     if (chatsReady) {
-      hybridSyncService.saveData('studyflow-ai-chats', savedChats);
+      try {
+        localStorage.setItem('studyflow-ai-chats', JSON.stringify(savedChats));
+      } catch (error) {
+        console.error('Error saving AI chats to localStorage:', error);
+      }
     }
   }, [savedChats, chatsReady]);
 
@@ -132,9 +137,24 @@ export default function AITest() {
     setLoading(true);
 
     try {
+      console.log('Sending message to AI:', userMessage.text);
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+      
+      if (!apiKey || apiKey === 'demo_key_please_replace') {
+        throw new Error('Google AI API key is not configured. Please check your environment variables.');
+      }
+      
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.8,
+          topK: 40,
+          maxOutputTokens: 2048,
+        }
+      });
 
       const prompt = `You are a helpful AI study assistant for students. Be friendly, encouraging, and provide clear explanations. Help with studying, concepts, homework questions, and study tips. 
 
@@ -142,9 +162,12 @@ User message: ${userMessage.text}
 
 Respond helpfully and conversationally.`;
 
+      console.log('Making API call with prompt length:', prompt.length);
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
+      
+      console.log('AI response received:', text.substring(0, 100) + '...');
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -159,9 +182,10 @@ Respond helpfully and conversationally.`;
         messages: [...prev.messages, aiMessage]
       }));
     } catch (error) {
+      console.error('AI Error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I encountered an error. Please try again.",
+        text: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the API connection test for more details.`,
         sender: 'ai',
         timestamp: new Date(),
         type: 'chat'
@@ -194,48 +218,85 @@ Respond helpfully and conversationally.`;
     setLoading(true);
 
     try {
+      console.log('Processing YouTube video:', youtubeUrl);
+      
       // Extract video ID from URL
       const videoId = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
       if (!videoId) {
-        throw new Error('Invalid YouTube URL');
+        throw new Error('Invalid YouTube URL format');
       }
 
-      // Get video info from YouTube API
-      const ytResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${import.meta.env.VITE_YOUTUBE_API_KEY}`
-      );
-      const ytData = await ytResponse.json();
-      const video = ytData.items?.[0];
-      
-      if (!video) {
-        throw new Error('Video not found');
+      let videoTitle = 'YouTube Video';
+      let videoDescription = '';
+
+      // Try to get video info from YouTube API if key is available
+      const youtubeApiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+      if (youtubeApiKey && youtubeApiKey !== 'your_youtube_api_key_here') {
+        try {
+          console.log('Fetching video metadata from YouTube API');
+          const ytResponse = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${youtubeApiKey}`
+          );
+          
+          if (ytResponse.ok) {
+            const ytData = await ytResponse.json();
+            const video = ytData.items?.[0];
+            
+            if (video) {
+              videoTitle = video.snippet.title;
+              videoDescription = video.snippet.description;
+              console.log('Video metadata retrieved:', videoTitle);
+            }
+          } else {
+            console.warn('YouTube API request failed:', await ytResponse.text());
+          }
+        } catch (ytError) {
+          console.warn('YouTube API failed, proceeding with AI analysis anyway:', ytError);
+        }
       }
 
       // Use Google AI to analyze video
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+      
+      if (!apiKey || apiKey === 'demo_key_please_replace') {
+        throw new Error('Google AI API key is not configured');
+      }
+      
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.8,
+          topK: 40,
+          maxOutputTokens: 2048,
+        }
+      });
 
       const prompt = `Analyze this YouTube video and create comprehensive study content:
 
-Title: ${video.snippet.title}
-Description: ${video.snippet.description}
+Video URL: ${youtubeUrl}
+Title: ${videoTitle}
+${videoDescription ? `Description: ${videoDescription}` : ''}
 
-Please provide:
-1. **Key Topics** covered in the video
-2. **Important Concepts** and definitions
-3. **Study Notes** with main points
-4. **Summary** of the content
+Since I don't have access to the actual video content, please provide general study guidance for analyzing YouTube educational content:
 
-Format as clear, organized study material.`;
+1. **How to Take Notes** from educational videos
+2. **Key Elements to Look For** when studying from video content
+3. **Study Strategies** for video-based learning
+4. **Tips for Retention** from multimedia content
 
+Please provide practical, actionable advice for studying from this video format.`;
+
+      console.log('Sending video analysis request to AI');
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const aiText = response.text();
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: `📺 **Video Analysis: ${video.snippet.title}**\n\n${aiText}`,
+        text: `📺 **Video Analysis: ${videoTitle}**\n\n${aiText}`,
         sender: 'ai',
         timestamp: new Date(),
         type: 'youtube'
@@ -246,9 +307,10 @@ Format as clear, organized study material.`;
         messages: [...prev.messages, aiMessage]
       }));
     } catch (error) {
+      console.error('YouTube processing error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: `❌ Error processing YouTube video: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the URL and try again.`,
+        text: `❌ Error processing YouTube video: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the URL and your API connections.`,
         sender: 'ai',
         timestamp: new Date(),
         type: 'youtube'
@@ -275,7 +337,6 @@ Format as clear, organized study material.`;
 
   const startNewChat = () => {
     // Current chat is already auto-saved by useEffect, no need to manually save
-    
     setCurrentChat({
       id: Date.now().toString(),
       title: 'New Chat',
@@ -304,6 +365,35 @@ Format as clear, organized study material.`;
       default: return <MessageCircle className="w-4 h-4" />;
     }
   };
+
+  if (viewMode === 'test') {
+    return (
+      <div className="p-8 space-y-8 bg-background min-h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl text-foreground font-semibold">AI Connection Test</h1>
+            <p className="text-muted-foreground">
+              Test your AI API connections and troubleshoot issues
+            </p>
+          </div>
+          <Button 
+            onClick={() => setViewMode('chat')}
+            variant="outline"
+            className="rounded-xl clay-input"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back to Chat
+          </Button>
+        </div>
+
+        {/* Connection Test */}
+        <div className="max-w-4xl mx-auto">
+          <AIConnectionTest />
+        </div>
+      </div>
+    );
+  }
 
   if (viewMode === 'history') {
     return (
@@ -380,6 +470,14 @@ Format as clear, organized study material.`;
         </div>
         
         <div className="flex items-center space-x-3">
+          <Button 
+            onClick={() => setViewMode('test')}
+            variant="outline"
+            className="rounded-xl clay-input"
+          >
+            <Bot className="w-4 h-4 mr-2" />
+            Test Connection
+          </Button>
           <Button 
             onClick={() => setViewMode('history')}
             variant="outline"

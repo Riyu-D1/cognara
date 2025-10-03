@@ -149,31 +149,23 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
         const videoInfo = await getYouTubeVideoInfo(content.url);
         
         // Use AI to generate flashcards
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const prompt = `Create flashcards from this YouTube video information:
-
-Title: ${videoInfo.title}
-Description: ${videoInfo.description}
-
-Generate 6-8 flashcards that test key concepts from this content. 
-Format each flashcard as:
-Q: [Clear, specific question]
-A: [Concise, accurate answer]
-
-Focus on important concepts, definitions, and key information that would be valuable for studying.`;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const { generateContent } = await import('../services/ai');
+        
+        const aiResponse = await generateContent({
+          sourceType: 'youtube',
+          content: `Title: ${videoInfo.title}\nDescription: ${videoInfo.description}`,
+          contentType: 'flashcards',
+          additionalContext: 'Generate 6-8 flashcards that test key concepts and important information'
+        });
 
         // Parse AI response to extract flashcards
-        const flashcards = parseFlashcardsFromAI(text);
+        const flashcards = aiResponse.flashcards || [];
         
         setNewSetTitle(`${videoInfo.title} - Flashcards`);
-        setNewCards(flashcards.length > 0 ? flashcards : [
+        setNewCards(flashcards.length > 0 ? flashcards.map(card => ({
+          front: card.question,
+          back: card.answer
+        })) : [
           { front: 'Main Topic', back: 'Key concepts from: ' + videoInfo.title },
           { front: 'Key Concept', back: 'Important information from the video content' }
         ]);

@@ -105,27 +105,16 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
         const videoInfo = await getYouTubeVideoInfo(content.url);
         
         // Use AI to generate notes from video description
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const { generateContent } = await import('../services/ai');
+        
+        const aiResponse = await generateContent({
+          sourceType: 'youtube',
+          content: `Title: ${videoInfo.title}\nDescription: ${videoInfo.description}\nURL: ${content.url}`,
+          contentType: 'notes',
+          additionalContext: 'Create comprehensive study notes with clear headings and structure'
+        });
 
-        const prompt = `Create comprehensive study notes from this YouTube video information:
-
-Title: ${videoInfo.title}
-Description: ${videoInfo.description}
-URL: ${content.url}
-
-Please create detailed study notes with:
-1. **Main Topics** - Key subjects covered
-2. **Key Concepts** - Important definitions and explanations  
-3. **Study Points** - Bullet points of important information
-4. **Summary** - Brief overview
-
-Format as clear, organized study notes with proper headings and structure.`;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const aiNotes = response.text();
+        const aiNotes = aiResponse.notes || 'Failed to generate notes from video content.';
 
         setNoteTitle(`Study Notes: ${videoInfo.title}`);
         setNotes(aiNotes);

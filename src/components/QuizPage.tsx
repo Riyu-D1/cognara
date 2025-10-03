@@ -312,37 +312,25 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
         const videoInfo = await getYouTubeVideoInfo(content.url);
         
         // Use AI to generate quiz questions
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_AI_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        const prompt = `Create a quiz from this YouTube video information:
-
-Title: ${videoInfo.title}
-Description: ${videoInfo.description}
-
-Generate 5-6 multiple choice quiz questions that test comprehension of the key concepts.
-
-Format each question as:
-Question: [Clear question text]
-A) [Option 1]
-B) [Option 2] 
-C) [Option 3]
-D) [Option 4]
-Correct: [A, B, C, or D]
-Explanation: [Brief explanation of why the answer is correct]
-
-Focus on testing understanding of main concepts, not trivial details.`;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const { generateContent } = await import('../services/ai');
+        
+        const aiResponse = await generateContent({
+          sourceType: 'youtube',
+          content: `Title: ${videoInfo.title}\nDescription: ${videoInfo.description}`,
+          contentType: 'quiz',
+          additionalContext: 'Generate 5-6 multiple choice quiz questions that test comprehension of key concepts'
+        });
 
         // Parse AI response to extract quiz questions
-        const quizQuestions = parseQuizFromAI(text);
+        const quizQuestions = aiResponse.quiz || [];
         
         setNewQuizTitle(`${videoInfo.title} - Quiz`);
-        setNewQuizQuestions(quizQuestions.length > 0 ? quizQuestions : [
+        setNewQuizQuestions(quizQuestions.length > 0 ? quizQuestions.map(q => ({
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctOption,
+          explanation: 'Quiz question from video content'
+        })) : [
           {
             question: 'What is the main topic covered in this video?',
             options: [videoInfo.title, 'Other topic', 'Different subject', 'None of the above'],
