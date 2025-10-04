@@ -70,21 +70,15 @@ export class HybridSyncService {
     if (!this.userId || !this.isOnline) return;
 
     try {
-      console.log('📥 Loading data from database...');
+      console.log('📥 Loading notes from database...');
       
-      // Load all data types
+      // Load only notes for now
       const notes = await this.loadNotesFromDB();
-      const flashcards = await this.loadFlashcardsFromDB();
-      const quizzes = await this.loadQuizzesFromDB();
-      const chats = await this.loadChatsFromDB();
       
       // Merge with localStorage
       this.mergeData('studyflow-notes', notes);
-      this.mergeData('studyflow-flashcards', flashcards);
-      this.mergeData('studyflow-quizzes', quizzes);
-      this.mergeData('studyflow-ai-chats', chats);
 
-      console.log('✅ All data loaded and merged');
+      console.log('✅ Notes data loaded and merged');
     } catch (error) {
       console.error('❌ Error loading from database:', error);
     }
@@ -105,6 +99,213 @@ export class HybridSyncService {
           key,
           newValue: JSON.stringify(dbData),
           oldValue: null
+        }));
+      } else if (localData && dbData.length > 0) {
+        // Both exist, merge intelligently
+        const local = JSON.parse(localData);
+        const merged = this.intelligentMerge(local, dbData);
+        
+        if (JSON.stringify(merged) !== localData) {
+          localStorage.setItem(key, JSON.stringify(merged));
+          console.log(`🔄 Merged ${key} data:`, merged.length, 'items');
+          
+          // Trigger storage event
+          window.dispatchEvent(new StorageEvent('storage', {
+            key,
+            newValue: JSON.stringify(merged),
+            oldValue: localData
+          }));
+        }
+      }
+    } catch (error) {
+      console.error(`Error merging ${key}:`, error);
+    }
+  }
+
+  // Intelligent merge - prefer items with newer timestamps or IDs
+  private intelligentMerge(local: any[], db: any[]): any[] {
+    const merged = [...local];
+    
+    db.forEach(dbItem => {
+      const existingIndex = merged.findIndex(localItem => {
+        // Try to match by id, title, or content similarity
+        return localItem.id === dbItem.id || 
+               localItem.title === dbItem.title ||
+               (localItem.text && dbItem.title && localItem.text.includes(dbItem.title));
+      });
+      
+      if (existingIndex === -1) {
+        // New item from database, add it
+        merged.push(dbItem);
+      }
+      // If exists locally, keep local version (assume it's more recent)
+    });
+    
+    return merged;
+  }
+
+  // Get timestamp from data (tries different timestamp fields)
+  private getDataTimestamp(data: any): number | null {
+    if (!data) return null;
+    
+    // Try different timestamp fields
+    const timestampFields = ['lastModified', 'updatedAt', 'updated_at', 'createdAt', 'created_at'];
+    
+    for (const field of timestampFields) {
+      if (data[field]) {
+        const timestamp = new Date(data[field]).getTime();
+        if (!isNaN(timestamp)) return timestamp;
+      }
+    }
+    
+    // If data is an array, try to find the most recent timestamp
+    if (Array.isArray(data) && data.length > 0) {
+      let maxTimestamp = 0;
+      for (const item of data) {
+        const itemTimestamp = this.getDataTimestamp(item);
+        if (itemTimestamp && itemTimestamp > maxTimestamp) {
+          maxTimestamp = itemTimestamp;
+        }
+      }
+      return maxTimestamp > 0 ? maxTimestamp : null;
+    }
+    
+    return null;
+  }
+
+  // Save data to localStorage and sync to database
+  async saveData(key: string, data: any): Promise<void> {
+    try {
+      // Always save to localStorage first for immediate access
+      localStorage.setItem(key, JSON.stringify(data));
+      console.log(`💾 Saved ${key} to localStorage`);
+
+      // Add to pending sync for database
+      this.pendingSync.add(key);
+      
+      // Sync to database if online
+      if (this.isOnline && this.userId) {
+        await this.syncToDatabase(key, data);
+      } else {
+        console.log(`📴 Offline - ${key} will sync when online`);
+      }
+    } catch (error) {
+      console.error(`❌ Error saving ${key}:`, error);
+    }
+  }
+
+  // Sync specific data to database
+  private async syncToDatabase(key: string, data?: any): Promise<void> {
+    if (!this.userId || !this.isOnline) return;
+
+    try {
+      // Get data from localStorage if not provided
+      if (data === undefined) {
+        const dataStr = localStorage.getItem(key);
+        if (!dataStr) return;
+        data = JSON.parse(dataStr);
+      }
+
+      // Upsert to database
+      const { error } = await supabase
+        .from('user_data')
+        .upsert({
+          user_id: this.userId,
+          data_key: key,
+          data_value: data
+        }, {
+          onConflict: 'user_id,data_key'
+        });
+
+      if (error) {
+        console.error(`❌ Error syncing ${key} to database:`, error);
+        // Keep in pending sync to retry later
+        return;
+      }
+
+      console.log(`☁️ Synced ${key} to database`);
+      this.pendingSync.delete(key);
+    } catch (error) {
+      console.error(`❌ Error in syncToDatabase for ${key}:`, error);
+    }
+  }
+
+  // Sync all pending data
+  private async syncPendingData(): Promise<void> {
+    if (!this.userId || !this.isOnline || this.pendingSync.size === 0) return;
+
+    console.log(`🔄 Syncing ${this.pendingSync.size} pending items...`);
+    
+    const keysToSync = Array.from(this.pendingSync);
+    
+    for (const key of keysToSync) {
+      await this.syncToDatabase(key);
+    }
+  }
+
+  // Start periodic sync
+  private startPeriodicSync(): void {
+    // Sync pending data every 30 seconds
+    if (this.syncTimeout) {
+      clearInterval(this.syncTimeout);
+    }
+    
+    this.syncTimeout = setInterval(() => {
+      this.syncPendingData();
+    }, 30000);
+  }
+
+  // Clear user data (for logout)
+  clearUserData(): void {
+    this.userId = null;
+    this.ready = false;
+    this.pendingSync.clear();
+    
+    if (this.syncTimeout) {
+      clearInterval(this.syncTimeout);
+      this.syncTimeout = null;
+    }
+    
+    console.log('🧹 HybridSync cleared user data');
+  }
+
+  // Manual sync trigger
+  async forcSync(): Promise<void> {
+    if (!this.userId) {
+      console.warn('⚠️ Cannot sync: no user logged in');
+      return;
+    }
+
+    console.log('🔄 Force syncing all data...');
+    
+    try {
+      // First, sync any pending localStorage data to database
+      await this.syncPendingData();
+      
+      // Then, reload from database to get any updates from other devices
+      await this.loadFromDatabase();
+      
+      console.log('✅ Force sync complete');
+    } catch (error) {
+      console.error('❌ Error in force sync:', error);
+    }
+  }
+
+  // Get sync status
+  getSyncStatus(): { 
+    isOnline: boolean; 
+    userId: string | null; 
+    pendingSync: number; 
+    isReady: boolean 
+  } {
+    return {
+      isOnline: this.isOnline,
+      userId: this.userId,
+      pendingSync: this.pendingSync.size,
+      isReady: this.ready
+    };
+  }
+}
         }));
       } else if (localData && dbData.length > 0) {
         // Both exist, merge intelligently
@@ -171,43 +372,6 @@ export class HybridSyncService {
       
     } catch (error) {
       console.error(`Error saving ${key}:`, error);
-    }
-  }
-
-  // Delete specific item and sync to database
-  async deleteItem(key: string, itemId: any, deleteFromDB?: () => Promise<boolean>): Promise<void> {
-    try {
-      // Remove from localStorage first
-      const dataStr = localStorage.getItem(key);
-      if (dataStr) {
-        const data = JSON.parse(dataStr);
-        const updatedData = data.filter((item: any) => item.id !== itemId && item.db_id !== itemId);
-        localStorage.setItem(key, JSON.stringify(updatedData));
-        console.log(`🗑️ Deleted item ${itemId} from ${key} localStorage`);
-        
-        // Trigger storage event for UI updates
-        window.dispatchEvent(new StorageEvent('storage', {
-          key,
-          newValue: JSON.stringify(updatedData),
-          oldValue: dataStr
-        }));
-      }
-
-      // Delete from database if function provided and online
-      if (deleteFromDB && this.isOnline && this.userId) {
-        try {
-          const success = await deleteFromDB();
-          if (success) {
-            console.log(`☁️ Deleted item ${itemId} from database`);
-          } else {
-            console.warn(`⚠️ Failed to delete item ${itemId} from database`);
-          }
-        } catch (error) {
-          console.error(`❌ Error deleting item ${itemId} from database:`, error);
-        }
-      }
-    } catch (error) {
-      console.error(`❌ Error deleting item ${itemId}:`, error);
     }
   }
 
@@ -613,43 +777,6 @@ export class HybridSyncService {
       console.log('📶 Back online, syncing pending data...');
       await this.syncToDatabase();
     }
-  }
-
-  // Manual sync trigger
-  async forcSync(): Promise<void> {
-    if (!this.userId) {
-      console.warn('⚠️ Cannot sync: no user logged in');
-      return;
-    }
-
-    console.log('🔄 Force syncing all data...');
-    
-    try {
-      // First, sync any pending localStorage data to database
-      await this.syncPendingData();
-      
-      // Then, reload from database to get any updates from other devices
-      await this.loadFromDatabase();
-      
-      console.log('✅ Force sync complete');
-    } catch (error) {
-      console.error('❌ Error in force sync:', error);
-    }
-  }
-
-  // Get sync status
-  getSyncStatus(): { 
-    isOnline: boolean; 
-    userId: string | null; 
-    pendingSync: number; 
-    isReady: boolean 
-  } {
-    return {
-      isOnline: this.isOnline,
-      userId: this.userId,
-      pendingSync: this.pendingSync.size,
-      isReady: this.ready
-    };
   }
 
   // Clear data on logout

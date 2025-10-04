@@ -5,6 +5,7 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ContentInputOptions } from './ContentInputOptions';
 import { hybridSyncService } from '../services/hybridSync';
+import { quizzesService } from '../services/database';
 import { 
   CheckCircle, 
   XCircle, 
@@ -212,9 +213,13 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
       subject: quiz.questions[0]?.subject || 'General',
       difficulty: 'Medium',
       lastTaken: 'Never',
-      createdAt: quiz.createdAt
+      createdAt: quiz.createdAt,
+      isSaved: true // Flag to identify saved quizzes
     })),
-    ...mockQuizzes
+    ...mockQuizzes.map(quiz => ({
+      ...quiz,
+      isSaved: false // Flag to identify mock quizzes
+    }))
   ];
 
   console.log('Saved quizzes:', savedQuizzes);
@@ -286,6 +291,56 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
     setShowContentOptions(true);
     setShowManualInput(false);
     setViewMode('list');
+  };
+
+  const deleteQuiz = async (quizId: number) => {
+    console.log('🗑️ QuizPage: Deleting quiz:', quizId);
+    
+    try {
+      // First, remove from local state for immediate UI update
+      setSavedQuizzes(savedQuizzes.filter(quiz => quiz.id !== quizId));
+      
+      // Also remove from localStorage
+      const dataStr = localStorage.getItem('studyflow-quizzes');
+      if (dataStr) {
+        const quizzes = JSON.parse(dataStr);
+        const updatedQuizzes = quizzes.filter((q: any) => q.id !== quizId);
+        localStorage.setItem('studyflow-quizzes', JSON.stringify(updatedQuizzes));
+        
+        // Trigger storage event for other components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'studyflow-quizzes',
+          newValue: JSON.stringify(updatedQuizzes),
+          oldValue: dataStr
+        }));
+      }
+      
+      // If the quiz has a database ID, delete it from database too
+      const quizInStorage = dataStr ? JSON.parse(dataStr).find((q: any) => q.id === quizId) : null;
+      if (quizInStorage?.db_id && hybridSyncService.getSyncStatus().isOnline) {
+        console.log(`☁️ Deleting quiz ${quizInStorage.db_id} from database...`);
+        const dbSuccess = await quizzesService.deleteQuiz(quizInStorage.db_id);
+        if (dbSuccess) {
+          console.log(`✅ Successfully deleted quiz from database`);
+        } else {
+          console.warn(`⚠️ Failed to delete quiz from database`);
+        }
+      } else {
+        console.log(`📝 Quiz has no database ID or offline - local deletion only`);
+      }
+      
+      console.log('✅ QuizPage: Quiz deleted successfully');
+    } catch (error) {
+      console.error('❌ QuizPage: Error deleting quiz:', error);
+      // Restore quiz if deletion failed
+      if (savedQuizzes.find(quiz => quiz.id === quizId) === undefined) {
+        const dataStr = localStorage.getItem('studyflow-quizzes');
+        if (dataStr) {
+          const quizzes = JSON.parse(dataStr);
+          setSavedQuizzes(quizzes);
+        }
+      }
+    }
   };
 
   const handleContentSelect = async (type: 'youtube' | 'file', content: any) => {
@@ -697,17 +752,34 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
           {availableQuizzes.map((quiz) => (
             <Card 
               key={quiz.id}
-              className="p-6 clay-card hover:clay-glow-accent transition-all duration-200"
+              className="p-6 clay-card hover:clay-glow-accent transition-all duration-200 group"
             >
               <div className="space-y-4">
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getSubjectColor(quiz.subject)} variant="secondary">
-                      {quiz.subject}
-                    </Badge>
-                    <Badge className={getDifficultyColor(quiz.difficulty)} variant="secondary">
-                      {quiz.difficulty}
-                    </Badge>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getSubjectColor(quiz.subject)} variant="secondary">
+                        {quiz.subject}
+                      </Badge>
+                      <Badge className={getDifficultyColor(quiz.difficulty)} variant="secondary">
+                        {quiz.difficulty}
+                      </Badge>
+                    </div>
+                    
+                    {/* Delete Button - only show for saved quizzes */}
+                    {quiz.isSaved && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteQuiz(quiz.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-600 transition-all duration-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                   
                   <h3 className="text-foreground">{quiz.title}</h3>

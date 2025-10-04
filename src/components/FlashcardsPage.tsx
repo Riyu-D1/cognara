@@ -5,6 +5,7 @@ import { FlashcardsCreate } from './flashcards/FlashcardsCreate';
 import { mockFlashcardDecks } from '../utils/studyConstants';
 import { Screen } from '../utils/constants';
 import { hybridSyncService } from '../services/hybridSync';
+import { flashcardActions } from '../services/flashcardActions';
 
 interface FlashcardsPageProps {
   onNavigate: (screen: Screen) => void;
@@ -128,6 +129,25 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
     setNewCards([{front: '', back: ''}]);
     setShowContentOptions(true);
     setShowManualInput(false);
+  };
+
+  const deleteDeck = async (deckId: number) => {
+    console.log('🗑️ FlashcardsPage: Deleting deck:', deckId);
+    
+    try {
+      // Use flashcard actions to delete with hybrid sync
+      const success = await flashcardActions.deleteDeck(deckId.toString());
+      
+      if (success) {
+        // Update local state immediately for UI responsiveness
+        setSavedDecks(savedDecks.filter(deck => deck.id !== deckId));
+        console.log('✅ FlashcardsPage: Deck deleted successfully');
+      } else {
+        console.error('❌ FlashcardsPage: Failed to delete deck');
+      }
+    } catch (error) {
+      console.error('❌ FlashcardsPage: Error deleting deck:', error);
+    }
   };
 
   const handleContentSelect = async (type: 'youtube' | 'file', content: any) => {
@@ -312,6 +332,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
       decks={savedDecks}
       onStartStudy={startStudyMode}
       onCreateSet={() => setViewMode('create')}
+      onDeleteDeck={deleteDeck}
     />
   );
 }

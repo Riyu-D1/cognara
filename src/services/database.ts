@@ -144,15 +144,31 @@ export const notesService = {
 
   async deleteNote(noteId: string): Promise<boolean> {
     try {
+      console.log(`🗑️ Database: Attempting to delete note ${noteId}`);
+      
+      // First check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Database: User not authenticated for note deletion');
+        throw new Error('User not authenticated');
+      }
+      
+      console.log(`🔐 Database: User ${user.id} authenticated, deleting note...`);
+      
       const { error } = await supabase
         .from('user_notes')
         .delete()
         .eq('id', noteId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database: Supabase error deleting note:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Database: Successfully deleted note ${noteId}`);
       return true;
     } catch (error) {
-      console.error('Error deleting note:', error);
+      console.error('❌ Database: Error deleting note:', error);
       return false;
     }
   }
@@ -280,15 +296,76 @@ export const flashcardsService = {
 
   async deleteFlashcardDeck(deckId: string): Promise<boolean> {
     try {
+      console.log(`🗑️ Database: Attempting to delete flashcard deck ${deckId}`);
+      
+      // First check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Database: User not authenticated for deck deletion');
+        throw new Error('User not authenticated');
+      }
+      
+      console.log(`🔐 Database: User ${user.id} authenticated, deleting deck...`);
+      
       const { error } = await supabase
         .from('user_flashcards')
         .delete()
         .eq('id', deckId);
 
+      if (error) {
+        console.error('❌ Database: Supabase error deleting deck:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Database: Successfully deleted flashcard deck ${deckId}`);
+      return true;
+    } catch (error) {
+      console.error('❌ Database: Error deleting flashcard deck:', error);
+      return false;
+    }
+  },
+
+  async deleteFlashcardCard(cardId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('flashcard_cards')
+        .delete()
+        .eq('id', cardId);
+
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error deleting flashcard deck:', error);
+      console.error('Error deleting flashcard card:', error);
+      return false;
+    }
+  },
+
+  async deleteMultipleCards(cardIds: string[]): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('flashcard_cards')
+        .delete()
+        .in('id', cardIds);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting multiple flashcard cards:', error);
+      return false;
+    }
+  },
+
+  async deleteAllCardsFromDeck(deckId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('flashcard_cards')
+        .delete()
+        .eq('deck_id', deckId);
+
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting all cards from deck:', error);
       return false;
     }
   }
@@ -420,15 +497,31 @@ export const quizzesService = {
 
   async deleteQuiz(quizId: string): Promise<boolean> {
     try {
+      console.log(`🗑️ Database: Attempting to delete quiz ${quizId}`);
+      
+      // First check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Database: User not authenticated for quiz deletion');
+        throw new Error('User not authenticated');
+      }
+      
+      console.log(`🔐 Database: User ${user.id} authenticated, deleting quiz...`);
+      
       const { error } = await supabase
         .from('user_quizzes')
         .delete()
         .eq('id', quizId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database: Supabase error deleting quiz:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Database: Successfully deleted quiz ${quizId}`);
       return true;
     } catch (error) {
-      console.error('Error deleting quiz:', error);
+      console.error('❌ Database: Error deleting quiz:', error);
       return false;
     }
   }
@@ -552,15 +645,31 @@ export const aiChatsService = {
 
   async deleteChat(chatId: string): Promise<boolean> {
     try {
+      console.log(`🗑️ Database: Attempting to delete AI chat ${chatId}`);
+      
+      // First check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Database: User not authenticated for chat deletion');
+        throw new Error('User not authenticated');
+      }
+      
+      console.log(`🔐 Database: User ${user.id} authenticated, deleting chat...`);
+      
       const { error } = await supabase
         .from('ai_chats')
         .delete()
         .eq('id', chatId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database: Supabase error deleting chat:', error);
+        throw error;
+      }
+      
+      console.log(`✅ Database: Successfully deleted AI chat ${chatId}`);
       return true;
     } catch (error) {
-      console.error('Error deleting AI chat:', error);
+      console.error('❌ Database: Error deleting AI chat:', error);
       return false;
     }
   }

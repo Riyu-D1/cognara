@@ -6,6 +6,7 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ContentInputOptions } from './ContentInputOptions';
 import { hybridSyncService } from '../services/hybridSync';
+import { notesService } from '../services/database';
 import { 
   Sparkles, 
   Bold, 
@@ -226,8 +227,56 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
     setViewMode('edit');
   };
 
-  const deleteNote = (id: number) => {
-    setSavedNotes(savedNotes.filter(note => note.id !== id));
+  const deleteNote = async (id: number) => {
+    console.log('🗑️ NotesPage: Deleting note:', id);
+    
+    try {
+      // First, remove from local state for immediate UI update
+      const noteToDelete = savedNotes.find(note => note.id === id);
+      setSavedNotes(savedNotes.filter(note => note.id !== id));
+      
+      // Also remove from localStorage
+      const dataStr = localStorage.getItem('studyflow-notes');
+      if (dataStr) {
+        const notes = JSON.parse(dataStr);
+        const updatedNotes = notes.filter((n: any) => n.id !== id);
+        localStorage.setItem('studyflow-notes', JSON.stringify(updatedNotes));
+        
+        // Trigger storage event for other components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'studyflow-notes',
+          newValue: JSON.stringify(updatedNotes),
+          oldValue: dataStr
+        }));
+      }
+      
+      // If the note has a database ID, delete it from database too
+      const noteInStorage = dataStr ? JSON.parse(dataStr).find((n: any) => n.id === id) : null;
+      if (noteInStorage?.db_id && hybridSyncService.getSyncStatus().isOnline) {
+        console.log(`☁️ Deleting note ${noteInStorage.db_id} from database...`);
+        const dbSuccess = await notesService.deleteNote(noteInStorage.db_id);
+        if (dbSuccess) {
+          console.log(`✅ Successfully deleted note from database`);
+        } else {
+          console.warn(`⚠️ Failed to delete note from database`);
+        }
+      } else {
+        console.log(`📝 Note has no database ID or offline - local deletion only`);
+      }
+      
+      console.log('✅ NotesPage: Note deleted successfully');
+    } catch (error) {
+      console.error('❌ NotesPage: Error deleting note:', error);
+      // Restore note if deletion failed
+      if (savedNotes.find(note => note.id === id) === undefined) {
+        // Only restore if it's not already in the list
+        const dataStr = localStorage.getItem('studyflow-notes');
+        if (dataStr) {
+          const notes = JSON.parse(dataStr);
+          setSavedNotes(notes);
+        }
+      }
+    }
   };
 
   const formatText = (format: 'bold' | 'italic' | 'highlight') => {

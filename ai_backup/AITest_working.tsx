@@ -6,8 +6,6 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ContentInputOptions } from './ContentInputOptions';
 import { AIConnectionTest } from './AIConnectionTest';
-import { hybridSyncService } from '../services/hybridSync';
-import { aiChatsService } from '../services/database';
 import { 
   Bot, 
   MessageCircle, 
@@ -22,8 +20,7 @@ import {
   Brain,
   X,
   ChevronLeft,
-  ChevronRight,
-  Trash2
+  ChevronRight
 } from 'lucide-react';
 
 interface Message {
@@ -64,45 +61,31 @@ export default function AITest() {
   const [chatsReady, setChatsReady] = useState(false);
 
   useEffect(() => {
-    // Wait for hybridSync to be ready before loading chats
-    if (hybridSyncService.isReady()) {
-      loadChatsFromStorage();
-    } else {
-      hybridSyncService.onReady(() => {
-        loadChatsFromStorage();
-      });
-    }
-  }, []);
-
-  const loadChatsFromStorage = () => {
-    try {
-      console.log('📱 AITest: Loading chats from storage...');
-      const storedChats = localStorage.getItem('studyflow-ai-chats');
-      if (storedChats) {
-        setSavedChats(JSON.parse(storedChats, (key, value) => {
+    // Simple initialization without hybridSync
+    setTimeout(() => {
+      try {
+        const storedChats = localStorage.getItem('studyflow-ai-chats');
+        setSavedChats(storedChats ? JSON.parse(storedChats, (key, value) => {
           if (key === 'timestamp' || key === 'createdAt') {
             return new Date(value);
           }
           return value;
-        }));
-      } else {
+        }) : []);
+      } catch (error) {
+        console.error('Error loading AI chats from localStorage:', error);
         setSavedChats([]);
       }
-    } catch (error) {
-      console.error('Error loading AI chats from localStorage:', error);
-      setSavedChats([]);
-    }
-    setChatsReady(true);
-  };
+      setChatsReady(true);
+    }, 100);
+  }, []);
 
-  // Save AI chats using hybrid sync service
+  // Save AI chats using localStorage
   useEffect(() => {
-    if (chatsReady && savedChats.length > 0) {
+    if (chatsReady) {
       try {
-        console.log('💾 AITest: Saving chats to hybrid sync:', savedChats.length, 'chats');
-        hybridSyncService.saveData('studyflow-ai-chats', savedChats);
+        localStorage.setItem('studyflow-ai-chats', JSON.stringify(savedChats));
       } catch (error) {
-        console.error('Error saving AI chats:', error);
+        console.error('Error saving AI chats to localStorage:', error);
       }
     }
   }, [savedChats, chatsReady]);
@@ -370,72 +353,6 @@ Please provide practical, actionable advice for studying from this video format.
     setViewMode('chat');
   };
 
-  const deleteChat = async (chatId: string) => {
-    console.log('🗑️ AITest: Deleting chat:', chatId);
-    
-    try {
-      // First, remove from local state for immediate UI update
-      setSavedChats(savedChats.filter(chat => chat.id !== chatId));
-      
-      // Also remove from localStorage
-      const dataStr = localStorage.getItem('studyflow-ai-chats');
-      if (dataStr) {
-        const chats = JSON.parse(dataStr, (key, value) => {
-          if (key === 'timestamp' || key === 'createdAt') {
-            return new Date(value);
-          }
-          return value;
-        });
-        const updatedChats = chats.filter((c: any) => c.id !== chatId);
-        localStorage.setItem('studyflow-ai-chats', JSON.stringify(updatedChats));
-        
-        // Trigger storage event for other components
-        window.dispatchEvent(new StorageEvent('storage', {
-          key: 'studyflow-ai-chats',
-          newValue: JSON.stringify(updatedChats),
-          oldValue: dataStr
-        }));
-      }
-      
-      // If the chat has a database ID, delete it from database too
-      const chatInStorage = dataStr ? JSON.parse(dataStr, (key, value) => {
-        if (key === 'timestamp' || key === 'createdAt') {
-          return new Date(value);
-        }
-        return value;
-      }).find((c: any) => c.id === chatId) : null;
-      
-      if (chatInStorage?.db_id && hybridSyncService.getSyncStatus().isOnline) {
-        console.log(`☁️ Deleting chat ${chatInStorage.db_id} from database...`);
-        const dbSuccess = await aiChatsService.deleteChat(chatInStorage.db_id);
-        if (dbSuccess) {
-          console.log(`✅ Successfully deleted chat from database`);
-        } else {
-          console.warn(`⚠️ Failed to delete chat from database`);
-        }
-      } else {
-        console.log(`📝 Chat has no database ID or offline - local deletion only`);
-      }
-      
-      console.log('✅ AITest: Chat deleted successfully');
-    } catch (error) {
-      console.error('❌ AITest: Error deleting chat:', error);
-      // Restore chat if deletion failed
-      if (savedChats.find(chat => chat.id === chatId) === undefined) {
-        const dataStr = localStorage.getItem('studyflow-ai-chats');
-        if (dataStr) {
-          const chats = JSON.parse(dataStr, (key, value) => {
-            if (key === 'timestamp' || key === 'createdAt') {
-              return new Date(value);
-            }
-            return value;
-          });
-          setSavedChats(chats);
-        }
-      }
-    }
-  };
-
   const loadChat = (chat: Chat) => {
     setCurrentChat(chat);
     setViewMode('chat');
@@ -509,25 +426,9 @@ Please provide practical, actionable advice for studying from this video format.
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-foreground font-medium group-hover:text-primary transition-colors">
-                      {chat.title}
-                    </h3>
-                    
-                    {/* Delete Button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteChat(chat.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-600 transition-all duration-200"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
+                  <h3 className="text-foreground font-medium group-hover:text-primary transition-colors">
+                    {chat.title}
+                  </h3>
                   <div className="flex items-center space-x-2 text-muted-foreground text-sm mt-1">
                     <Clock className="w-3 h-3" />
                     <span>{chat.createdAt.toLocaleDateString()}</span>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Play, Plus, Layers, BookOpen, Brain, Clock, TrendingUp } from 'lucide-react';
+import { Play, Plus, Layers, BookOpen, Brain, Clock, TrendingUp, Trash2, MoreVertical } from 'lucide-react';
 import { getDifficultyColor, getSubjectColor } from '../../utils/studyConstants';
 
 interface FlashcardDeck {
@@ -26,9 +26,10 @@ interface FlashcardsGridProps {
   decks: FlashcardDeck[];
   onStartStudy: (deckId: number) => void;
   onCreateSet: () => void;
+  onDeleteDeck: (deckId: number) => void;
 }
 
-export function FlashcardsGrid({ decks, onStartStudy, onCreateSet }: FlashcardsGridProps) {
+export function FlashcardsGrid({ decks, onStartStudy, onCreateSet, onDeleteDeck }: FlashcardsGridProps) {
   const subjects = [...new Set(decks.map(deck => deck.subject))];
   const totalCards = decks.reduce((sum, deck) => sum + deck.cardCount, 0);
 
@@ -98,6 +99,19 @@ export function FlashcardsGrid({ decks, onStartStudy, onCreateSet }: FlashcardsG
                     {deck.description}
                   </p>
                 </div>
+                
+                {/* Delete Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteDeck(deck.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-600 transition-all duration-200"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
               
               {/* Deck Stats */}

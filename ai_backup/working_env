@@ -1,0 +1,12 @@
+# StudyFlow AI Features Configuration
+# Demo configuration for development - limited functionality
+
+# Google AI API Key (Gemini) - CONFIGURED
+VITE_GOOGLE_AI_KEY=AIzaSyBMmRv9y-ZdqDRdcPoGErYsXdcBAg0ZEKg
+
+# YouTube Data API v3 Key - CONFIGURED
+VITE_YOUTUBE_API_KEY=AIzaSyBQPe014hsgMViSzah-93_p24d30_I7a64
+
+# Supabase Configuration - CONFIGURED
+VITE_SUPABASE_URL=https://boakwacemdiqpayoixfa.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvYWt3YWNlbWRpcXBheW9peGZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2NTkyOTAsImV4cCI6MjA3MjIzNTI5MH0.MStSGJVf3OlK1SZzxvAzOA-ypytfb0jOf0nnchbU2rY
