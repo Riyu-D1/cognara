@@ -8,6 +8,7 @@ import { ContentInputOptions } from './ContentInputOptions';
 import { AIConnectionTest } from './AIConnectionTest';
 import { hybridSyncService } from '../services/hybridSync';
 import { aiChatsService } from '../services/database';
+import { generateContent as callMistralAI } from '../services/ai';
 import { 
   Bot, 
   MessageCircle, 
@@ -155,24 +156,7 @@ export default function AITest() {
 
     try {
       console.log('Sending message to AI:', userMessage.text);
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
       
-      if (!apiKey || apiKey === 'demo_key_please_replace') {
-        throw new Error('Google AI API key is not configured. Please check your environment variables.');
-      }
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 2048,
-        }
-      });
-
       const prompt = `You are a helpful AI study assistant for students. Be friendly, encouraging, and provide clear explanations. Help with studying, concepts, homework questions, and study tips. 
 
 User message: ${userMessage.text}
@@ -180,9 +164,39 @@ User message: ${userMessage.text}
 Respond helpfully and conversationally.`;
 
       console.log('Making API call with prompt length:', prompt.length);
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      
+      // Make direct API call to OpenRouter (Mistral AI)
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_GOOGLE_AI_KEY}`,
+          'HTTP-Referer': 'http://localhost:5173',
+          'X-Title': 'StudyFlow AI'
+        },
+        body: JSON.stringify({
+          model: 'mistralai/mistral-7b-instruct',
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 2048,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content;
+      
+      if (!text) {
+        throw new Error('Empty response from AI');
+      }
       
       console.log('AI response received:', text.substring(0, 100) + '...');
 
@@ -272,25 +286,6 @@ Respond helpfully and conversationally.`;
         }
       }
 
-      // Use Google AI to analyze video
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
-      
-      if (!apiKey || apiKey === 'demo_key_please_replace') {
-        throw new Error('Google AI API key is not configured');
-      }
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 2048,
-        }
-      });
-
       const prompt = `Analyze this YouTube video and create comprehensive study content:
 
 Video URL: ${youtubeUrl}
@@ -306,10 +301,39 @@ Since I don't have access to the actual video content, please provide general st
 
 Please provide practical, actionable advice for studying from this video format.`;
 
+      // Use OpenRouter (Mistral AI) to analyze video
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_GOOGLE_AI_KEY}`,
+          'HTTP-Referer': 'http://localhost:5173',
+          'X-Title': 'StudyFlow AI'
+        },
+        body: JSON.stringify({
+          model: 'mistralai/mistral-7b-instruct',
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 2048,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
       console.log('Sending video analysis request to AI');
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const aiText = response.text();
+      const data = await response.json();
+      const aiText = data.choices?.[0]?.message?.content;
+
+      if (!aiText) {
+        throw new Error('Empty response from AI');
+      }
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),

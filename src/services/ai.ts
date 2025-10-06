@@ -1,4 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Configuration
+const MISTRAL_API_KEY = import.meta.env.VITE_GOOGLE_AI_KEY;
+const MISTRAL_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // API Configuration
 const MAX_RETRIES = 3;
@@ -35,61 +37,65 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Check if API key is configured
 export function isAPIConfigured(): boolean {
-  const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
-  console.log('Checking API configuration:', {
-    hasApiKey: !!apiKey,
-    keyLength: apiKey?.length || 0,
-    isDemoKey: apiKey === 'demo_key_please_replace',
-    keyStart: apiKey?.substring(0, 10) || 'none'
+  console.log('Checking Mistral AI configuration:', {
+    hasApiKey: !!MISTRAL_API_KEY,
+    keyLength: MISTRAL_API_KEY?.length || 0,
+    keyStart: MISTRAL_API_KEY?.substring(0, 10) || 'none'
   });
-  return !!(apiKey && apiKey !== 'demo_key_please_replace' && apiKey.length > 10);
+  return !!(MISTRAL_API_KEY && MISTRAL_API_KEY.length > 10);
 }
 
 // Test API connection
 export async function testAPIConnection(): Promise<{ success: boolean; error?: string }> {
   try {
-    const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
-    if (!apiKey || apiKey === 'demo_key_please_replace') {
-      return { success: false, error: 'API key not configured' };
+    if (!MISTRAL_API_KEY) {
+      return { success: false, error: 'Mistral API key not configured' };
     }
 
-    console.log('Testing Google AI API with key:', apiKey.substring(0, 20) + '...');
-    const genAI = new GoogleGenerativeAI(apiKey);
+    console.log('Testing Mistral AI API...');
     
-    // Try different models in order of preference (updated model names)
-    const modelsToTry = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
-    
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`Testing model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40,
-            maxOutputTokens: 100,
+    const response = await fetch(MISTRAL_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`,
+        'HTTP-Referer': 'http://localhost:5173',
+        'X-Title': 'StudyFlow AI'
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct',
+        messages: [
+          {
+            role: 'user',
+            content: 'Respond with: API test successful'
           }
-        });
-        
-        const result = await model.generateContent('Respond with: API test successful');
-        const response = await result.response;
-        const text = response.text();
-        
-        if (text && text.trim().length > 0) {
-          console.log(`✅ Google AI API connection successful with model: ${modelName}`);
-          console.log('Response:', text);
-          return { success: true };
-        }
-      } catch (modelError) {
-        console.log(`Model ${modelName} failed:`, modelError);
-        continue; // Try next model
-      }
+        ],
+        max_tokens: 100,
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('❌ Mistral AI API connection failed:', errorData);
+      return { 
+        success: false, 
+        error: `HTTP ${response.status}: ${errorData.error || 'API request failed'}` 
+      };
     }
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
     
-    return { success: false, error: 'All models failed - check API key permissions' };
+    if (text && text.trim().length > 0) {
+      console.log('✅ Mistral AI API connection successful');
+      console.log('Response:', text);
+      return { success: true };
+    } else {
+      return { success: false, error: 'Empty response from Mistral AI' };
+    }
   } catch (error) {
-    console.error('❌ Google AI API connection failed:', error);
+    console.error('❌ Mistral AI API connection failed:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -128,26 +134,26 @@ export async function testYouTubeAPI(): Promise<{ success: boolean; error?: stri
 
 // Test all API connections
 export async function testAllAPIs(): Promise<{ 
-  googleAI: { success: boolean; error?: string };
+  mistralAI: { success: boolean; error?: string };
   youtube: { success: boolean; error?: string };
 }> {
   console.log('🔍 Testing API connections...');
   
-  const [googleAI, youtube] = await Promise.all([
+  const [mistralAI, youtube] = await Promise.all([
     testAPIConnection(),
     testYouTubeAPI()
   ]);
   
-  return { googleAI, youtube };
+  return { mistralAI, youtube };
 }
 
 // Get model suggestions for common issues
 export function getModelSuggestions(): string[] {
   return [
-    'gemini-2.0-flash',
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'learnlm-2.0-flash-experimental'
+    'mistral-small-latest',
+    'mistral-medium-latest',
+    'mistral-large-latest',
+    'open-mistral-7b'
   ];
 }
 
@@ -165,10 +171,8 @@ export async function generateContent({
   contentType,
   additionalContext = ''
 }: GenerateContentOptions): Promise<AIResponse> {
-  const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
-  
-  if (!apiKey || apiKey === 'demo_key_please_replace') {
-    throw new AIError('Google AI API key is not configured. Please check your environment variables.', 'MISSING_API_KEY', false);
+  if (!MISTRAL_API_KEY) {
+    throw new AIError('Mistral AI API key is not configured. Please check your environment variables.', 'MISSING_API_KEY', false);
   }
 
   if (!content?.trim()) {
@@ -178,43 +182,50 @@ export async function generateContent({
   // Retry logic for API calls
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Try different models in order of preference (updated model names)
-      const modelsToTry = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
-      let model;
-      let modelUsed = '';
-      
-      for (const modelName of modelsToTry) {
-        try {
-          model = genAI.getGenerativeModel({ 
-            model: modelName,
-            generationConfig: {
-              temperature: 0.7,
-              topP: 0.8,
-              topK: 40,
-              maxOutputTokens: 2048,
-            }
-          });
-          modelUsed = modelName;
-          break; // Use first available model
-        } catch (modelError) {
-          console.log(`Model ${modelName} not available, trying next...`);
-          continue;
-        }
-      }
-      
-      if (!model) {
-        throw new AIError('No compatible AI models available', 'NO_MODEL_AVAILABLE', false);
-      }
-
       const prompt = buildPrompt(contentType, sourceType, content, additionalContext);
       
-      console.log(`Generating ${contentType} content using Google AI (attempt ${attempt}/${MAX_RETRIES}) with model: ${modelUsed}...`);
+      console.log(`Generating ${contentType} content using Mistral AI (attempt ${attempt}/${MAX_RETRIES})...`);
       
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const responseText = response.text();
+      const response = await fetch(MISTRAL_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${MISTRAL_API_KEY}`,
+          'HTTP-Referer': 'http://localhost:5173',
+          'X-Title': 'StudyFlow AI'
+        },
+        body: JSON.stringify({
+          model: 'mistralai/mistral-7b-instruct',
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 2048,
+          temperature: 0.7,
+          top_p: 0.8
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        
+        if (response.status === 401) {
+          throw new AIError('Mistral AI API key is invalid. Please check your API key configuration.', 'INVALID_API_KEY', false);
+        }
+        if (response.status === 429) {
+          throw new AIError('Mistral AI API rate limit exceeded. Please try again later.', 'RATE_LIMIT', attempt < MAX_RETRIES);
+        }
+        if (response.status === 402) {
+          throw new AIError('Mistral AI API quota exceeded. Please try again later.', 'QUOTA_EXCEEDED', attempt < MAX_RETRIES);
+        }
+        
+        throw new AIError(`Mistral AI API error: ${errorData.error || 'Request failed'}`, 'API_ERROR', attempt < MAX_RETRIES);
+      }
+
+      const data = await response.json();
+      const responseText = data.choices?.[0]?.message?.content;
       
       if (!responseText?.trim()) {
         throw new AIError('Empty response from AI service', 'EMPTY_RESPONSE', true);
@@ -233,13 +244,13 @@ export async function generateContent({
         throw error;
       }
       
-      // Handle specific Google AI errors
+      // Handle specific Mistral AI errors
       if (error instanceof Error) {
         if (error.message.includes('API key')) {
-          throw new AIError('Google AI API key is invalid. Please check your API key configuration.', 'INVALID_API_KEY', false);
+          throw new AIError('Mistral AI API key is invalid. Please check your API key configuration.', 'INVALID_API_KEY', false);
         }
         if (error.message.includes('quota') || error.message.includes('limit')) {
-          throw new AIError('Google AI API quota exceeded. Please try again later or check your API limits.', 'QUOTA_EXCEEDED', attempt < MAX_RETRIES);
+          throw new AIError('Mistral AI API quota exceeded. Please try again later or check your API limits.', 'QUOTA_EXCEEDED', attempt < MAX_RETRIES);
         }
         if (error.message.includes('blocked') || error.message.includes('safety')) {
           throw new AIError('Content was blocked by AI safety filters. Please try with different content.', 'CONTENT_BLOCKED', false);
