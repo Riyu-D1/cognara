@@ -1,4 +1,4 @@
-// Configuration
+// Configuration - Updated for OpenRouter API
 const MISTRAL_API_KEY = import.meta.env.VITE_GOOGLE_AI_KEY;
 const MISTRAL_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
