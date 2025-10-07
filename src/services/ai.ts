@@ -37,10 +37,11 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Check if API key is configured
 export function isAPIConfigured(): boolean {
-  console.log('Checking Mistral AI configuration:', {
+  console.log('🔍 Checking OpenRouter API configuration:', {
     hasApiKey: !!MISTRAL_API_KEY,
     keyLength: MISTRAL_API_KEY?.length || 0,
-    keyStart: MISTRAL_API_KEY?.substring(0, 10) || 'none'
+    keyStart: MISTRAL_API_KEY?.substring(0, 15) || 'none',
+    envVarName: 'VITE_GOOGLE_AI_KEY'
   });
   return !!(MISTRAL_API_KEY && MISTRAL_API_KEY.length > 10);
 }
