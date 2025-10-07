@@ -171,7 +171,7 @@ Respond helpfully and conversationally.`;
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_GOOGLE_AI_KEY}`,
-          'HTTP-Referer': 'http://localhost:5173',
+          'HTTP-Referer': window.location.origin,
           'X-Title': 'StudyFlow AI'
         },
         body: JSON.stringify({
@@ -307,7 +307,7 @@ Please provide practical, actionable advice for studying from this video format.
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_GOOGLE_AI_KEY}`,
-          'HTTP-Referer': 'http://localhost:5173',
+          'HTTP-Referer': window.location.origin,
           'X-Title': 'StudyFlow AI'
         },
         body: JSON.stringify({

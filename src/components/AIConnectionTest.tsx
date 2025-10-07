@@ -50,7 +50,7 @@ export function AIConnectionTest() {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': 'http://localhost:5173',
+            'HTTP-Referer': window.location.origin,
             'X-Title': 'StudyFlow AI'
           },
           body: JSON.stringify({

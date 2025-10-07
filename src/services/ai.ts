@@ -60,7 +60,7 @@ export async function testAPIConnection(): Promise<{ success: boolean; error?: s
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MISTRAL_API_KEY}`,
-        'HTTP-Referer': 'http://localhost:5173',
+        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://studyflow.netlify.app',
         'X-Title': 'StudyFlow AI'
       },
       body: JSON.stringify({
@@ -192,7 +192,7 @@ export async function generateContent({
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${MISTRAL_API_KEY}`,
-          'HTTP-Referer': 'http://localhost:5173',
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://studyflow.netlify.app',
           'X-Title': 'StudyFlow AI'
         },
         body: JSON.stringify({
