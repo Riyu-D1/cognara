@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -24,9 +24,22 @@ import {
   Clock,
   Send,
   UserPlus,
-  MoreHorizontal
+  MoreHorizontal,
+  Paperclip,
+  FileText,
+  X,
+  Image as ImageIcon,
+  Loader2,
+  Trash2
 } from 'lucide-react';
 import { Screen } from '../utils/constants';
+import { 
+  socialPostsService, 
+  postAttachmentsService, 
+  fileUploadService,
+  type SocialPost as SocialPostType,
+  type PostAttachment
+} from '../services/social';
 
 interface SocialPageProps {
   onNavigate: (screen: Screen) => void;
@@ -34,6 +47,7 @@ interface SocialPageProps {
 
 interface Post {
   id: string;
+  user_id?: string;
   author: {
     name: string;
     avatar: string;
@@ -50,6 +64,7 @@ interface Post {
   tags?: string[];
   studyStreak?: number;
   achievement?: string;
+  attachments?: PostAttachment[];
 }
 
 interface StudyGroup {
@@ -66,6 +81,33 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
   const [activeTab, setActiveTab] = useState('feed');
   const [newPost, setNewPost] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<{
+    type: 'note' | 'flashcard' | 'quiz';
+    id: string;
+    title: string;
+  }[]>([]);
+  const [availableMaterials, setAvailableMaterials] = useState<{
+    notes: any[];
+    flashcards: any[];
+    quizzes: any[];
+  }>({ notes: [], flashcards: [], quizzes: [] });
+  const [showComments, setShowComments] = useState<string | null>(null);
+  const [comments, setComments] = useState<{ [postId: string]: any[] }>({});
+  const [newComment, setNewComment] = useState<string>('');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Get current user on mount
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { supabase } = await import('../utils/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+    };
+    getCurrentUser();
+  }, []);
 
   // Mock data for posts
   const [posts, setPosts] = useState<Post[]>([
@@ -177,10 +219,80 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
     ));
   };
 
-  const handleCreatePost = () => {
-    if (newPost.trim()) {
-      const post: Post = {
-        id: Date.now().toString(),
+  // Load user's study materials when attachment picker opens
+  useEffect(() => {
+    if (showAttachmentPicker) {
+      loadStudyMaterials();
+    }
+  }, [showAttachmentPicker]);
+
+  const loadStudyMaterials = async () => {
+    const materials = await postAttachmentsService.getUserStudyMaterials();
+    setAvailableMaterials(materials);
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPost.trim()) return;
+
+    setIsPosting(true);
+    try {
+      // Create the post first
+      const post = await socialPostsService.createPost({
+        content: newPost,
+        post_type: selectedMaterials.length > 0 || selectedFiles.length > 0 ? 'resource_share' : 'regular',
+        tags: [],
+        visibility: 'public',
+        is_pinned: false,
+        likes_count: 0,
+        comments_count: 0,
+        shares_count: 0
+      });
+
+      if (!post) {
+        throw new Error('Failed to create post');
+      }
+
+      console.log('📎 Attaching files and materials to post:', post.id);
+      console.log('Files to attach:', selectedFiles.length);
+      console.log('Materials to attach:', selectedMaterials.length, selectedMaterials);
+
+      // Upload files and attach them
+      for (const file of selectedFiles) {
+        const uploadedFile = await fileUploadService.uploadFile(file);
+        if (uploadedFile) {
+          console.log('✅ File uploaded:', uploadedFile.file_name);
+          await postAttachmentsService.attachFile(
+            post.id!,
+            uploadedFile.id!,
+            uploadedFile.file_name
+          );
+        }
+      }
+
+      // Attach study materials
+      for (const material of selectedMaterials) {
+        console.log('✅ Attaching material:', material.title, material.type);
+        const attachment = await postAttachmentsService.attachStudyMaterial(
+          post.id!,
+          material.type,
+          material.id,
+          material.title
+        );
+        console.log('Attachment result:', attachment);
+      }
+
+      // Fetch the post back with attachments for immediate UI update
+      console.log('🔍 Fetching attachments for post:', post.id);
+      const attachments = await postAttachmentsService.getPostAttachments(post.id!);
+      console.log('📎 Loaded attachments:', attachments);
+      
+      // Get current user for user_id
+      const { supabase } = await import('../utils/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const localPost: Post = {
+        id: post.id!,
+        user_id: user?.id,
         author: {
           name: 'You',
           avatar: 'Y',
@@ -192,10 +304,20 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
         comments: 0,
         shares: 0,
         isLiked: false,
-        studyStreak: 5
+        studyStreak: 5,
+        attachments: attachments
       };
-      setPosts([post, ...posts]);
+      setPosts([localPost, ...posts]);
+
+      // Reset form
       setNewPost('');
+      setSelectedFiles([]);
+      setSelectedMaterials([]);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('Failed to create post. Please try again.');
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -211,7 +333,7 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
 
   const handleContinueStreak = () => {
     console.log('Continuing study streak');
-    onNavigate('study');
+    onNavigate('dashboard');
   };
 
   const handleJoinGroup = (groupId: string) => {
@@ -229,9 +351,72 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
     // Could filter posts by study materials or navigate to notes
   };
 
-  const handleViewComments = (postId: string) => {
+  const handleViewComments = async (postId: string) => {
     console.log('Viewing comments for post:', postId);
-    // Could open a comments modal or expand inline comments
+    
+    // Toggle comments visibility
+    if (showComments === postId) {
+      setShowComments(null);
+    } else {
+      setShowComments(postId);
+      // Load comments if not already loaded
+      if (!comments[postId]) {
+        const { commentsService } = await import('../services/social');
+        const loadedComments = await commentsService.getPostComments(postId);
+        setComments(prev => ({ ...prev, [postId]: loadedComments }));
+      }
+    }
+  };
+
+  const handleAddComment = async (postId: string) => {
+    if (!newComment.trim()) return;
+
+    try {
+      const { commentsService } = await import('../services/social');
+      const comment = await commentsService.createComment(postId, newComment);
+      
+      if (comment) {
+        // Update local comments state
+        setComments(prev => ({
+          ...prev,
+          [postId]: [...(prev[postId] || []), comment]
+        }));
+        
+        // Update comment count in posts
+        setPosts(posts.map(post => 
+          post.id === postId 
+            ? { ...post, comments: post.comments + 1 }
+            : post
+        ));
+        
+        setNewComment('');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert('Failed to add comment');
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { socialPostsService } = await import('../services/social');
+      const success = await socialPostsService.deletePost(postId);
+      
+      if (success) {
+        // Remove post from local state
+        setPosts(posts.filter(post => post.id !== postId));
+        console.log('Post deleted successfully');
+      } else {
+        alert('Failed to delete post');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post');
+    }
   };
 
   const handleShare = (postId: string) => {
@@ -245,8 +430,32 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
   };
 
   const handleAttachStudyMaterial = () => {
-    console.log('Attaching study material to post');
-    // Could open file picker or study material selector
+    setShowAttachmentPicker(!showAttachmentPicker);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setSelectedFiles([...selectedFiles, ...newFiles]);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+  };
+
+  const handleSelectMaterial = (type: 'note' | 'flashcard' | 'quiz', id: string, title: string) => {
+    // Check if already selected
+    const exists = selectedMaterials.some(m => m.id === id);
+    if (exists) {
+      setSelectedMaterials(selectedMaterials.filter(m => m.id !== id));
+    } else {
+      setSelectedMaterials([...selectedMaterials, { type, id, title }]);
+    }
+  };
+
+  const handleRemoveMaterial = (id: string) => {
+    setSelectedMaterials(selectedMaterials.filter(m => m.id !== id));
   };
 
   const handleAttachAchievement = () => {
@@ -263,6 +472,133 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
     console.log('Checking leaderboard rankings');
     // Could populate leaderboard data
   };
+
+  // Attachment Picker Component
+  const AttachmentPicker = () => (
+    <Card className="mt-4 p-4 clay-card border-0">
+      <Tabs defaultValue="notes">
+        <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+          <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
+          <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="notes" className="max-h-60 overflow-y-auto space-y-2">
+          {availableMaterials.notes.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">No notes available</p>
+          ) : (
+            availableMaterials.notes.map(note => (
+              <div
+                key={note.id}
+                onClick={() => handleSelectMaterial('note', note.id, note.title)}
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  selectedMaterials.some(m => m.id === note.id)
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/50 clay-input'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-foreground font-medium">{note.title}</h4>
+                    <p className="text-sm text-muted-foreground">{note.subject}</p>
+                    {note.word_count && (
+                      <p className="text-xs text-muted-foreground mt-1">{note.word_count} words</p>
+                    )}
+                  </div>
+                  {selectedMaterials.some(m => m.id === note.id) && (
+                    <Badge className="bg-primary text-white">Selected</Badge>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="flashcards" className="max-h-60 overflow-y-auto space-y-2">
+          {availableMaterials.flashcards.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">No flashcard decks available</p>
+          ) : (
+            availableMaterials.flashcards.map(deck => (
+              <div
+                key={deck.id}
+                onClick={() => handleSelectMaterial('flashcard', deck.id, deck.title)}
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  selectedMaterials.some(m => m.id === deck.id)
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/50 clay-input'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-foreground font-medium">{deck.title}</h4>
+                    <p className="text-sm text-muted-foreground">{deck.subject}</p>
+                  </div>
+                  {selectedMaterials.some(m => m.id === deck.id) && (
+                    <Badge className="bg-primary text-white">Selected</Badge>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="quizzes" className="max-h-60 overflow-y-auto space-y-2">
+          {availableMaterials.quizzes.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">No quizzes available</p>
+          ) : (
+            availableMaterials.quizzes.map(quiz => (
+              <div
+                key={quiz.id}
+                onClick={() => handleSelectMaterial('quiz', quiz.id, quiz.title)}
+                className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  selectedMaterials.some(m => m.id === quiz.id)
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-primary/50 clay-input'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-foreground font-medium">{quiz.title}</h4>
+                  </div>
+                  {selectedMaterials.some(m => m.id === quiz.id) && (
+                    <Badge className="bg-primary text-white">Selected</Badge>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="files" className="space-y-2">
+          <div className="text-center py-4">
+            <input
+              type="file"
+              id="file-upload"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+              accept="image/*,.pdf,.doc,.docx,.txt"
+            />
+            <label htmlFor="file-upload">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full clay-input rounded-xl"
+                onClick={() => document.getElementById('file-upload')?.click()}
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                Select Files to Upload
+              </Button>
+            </label>
+            <p className="text-xs text-muted-foreground mt-2">
+              Supported: Images, PDFs, Documents
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </Card>
+  );
 
   const PostCard = ({ post }: { post: Post }) => (
     <Card className="p-6 clay-card border-0 hover:clay-glow-subtle transition-all duration-200">
@@ -291,7 +627,7 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">{post.timestamp}</span>
-              {post.author.name !== 'You' && (
+              {post.user_id && post.user_id !== currentUserId && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -303,6 +639,17 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
                   }`}
                 >
                   <UserPlus className="w-4 h-4" />
+                </Button>
+              )}
+              {post.user_id && post.user_id === currentUserId && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleDeletePost(post.id)}
+                  className="rounded-full text-muted-foreground hover:text-destructive"
+                  title="Delete post"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </Button>
               )}
               <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground">
@@ -337,6 +684,45 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
                 alt="Post image"
                 className="w-full h-64 object-cover"
               />
+            </div>
+          )}
+
+          {/* Display Attachments */}
+          {post.attachments && post.attachments.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs text-muted-foreground mb-2">
+                📎 {post.attachments.length} attachment{post.attachments.length !== 1 ? 's' : ''}
+              </p>
+              {post.attachments.map((attachment) => (
+                <div key={attachment.id} className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center space-x-3">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{attachment.attachment_title}</p>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="outline" className="text-xs">{attachment.attachment_type}</Badge>
+                        {attachment.attachment_metadata?.subject && (
+                          <span className="text-xs text-muted-foreground">
+                            {attachment.attachment_metadata.subject}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary hover:text-primary/80"
+                    onClick={() => {
+                      // Navigate to the study material
+                      console.log('Opening attachment:', attachment);
+                      // You can add navigation logic here based on attachment type
+                    }}
+                  >
+                    View
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
           
@@ -376,9 +762,73 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
               onClick={() => handleViewComments(post.id)}
               className="text-primary hover:text-primary/80"
             >
-              View Comments
+              {showComments === post.id ? 'Hide Comments' : 'View Comments'}
             </Button>
           </div>
+
+          {/* Comments Section */}
+          {showComments === post.id && (
+            <div className="mt-4 pt-4 border-t border-border space-y-4">
+              {/* Add Comment Input */}
+              <div className="flex items-start space-x-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-gradient-to-r from-accent-indigo to-accent text-white text-sm">
+                    Y
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <Textarea
+                    placeholder="Write a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="clay-input rounded-xl resize-none mb-2"
+                    rows={2}
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={() => handleAddComment(post.id)}
+                      disabled={!newComment.trim()}
+                      size="sm"
+                      className="clay-button text-white rounded-xl"
+                    >
+                      <Send className="w-3 h-3 mr-2" />
+                      Comment
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Display Comments */}
+              <div className="space-y-3">
+                {comments[post.id]?.map((comment) => (
+                  <div key={comment.id} className="flex items-start space-x-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarFallback className="bg-muted text-foreground text-sm">
+                        {comment.display_name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 bg-muted rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-foreground text-sm">
+                          {comment.display_name || 'Anonymous'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(comment.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-foreground text-sm">{comment.content}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {comments[post.id]?.length === 0 && (
+                  <p className="text-muted-foreground text-sm text-center py-4">
+                    No comments yet. Be the first to comment!
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </Card>
@@ -511,34 +961,100 @@ export function SocialPage({ onNavigate }: SocialPageProps) {
                         className="mb-4 clay-input rounded-xl resize-none"
                         rows={3}
                       />
+
+                      {/* Show selected attachments */}
+                      {(selectedMaterials.length > 0 || selectedFiles.length > 0) && (
+                        <div className="mb-4 space-y-2">
+                          {selectedMaterials.map(material => (
+                            <div key={material.id} className="flex items-center justify-between p-2 bg-primary/10 rounded-lg">
+                              <div className="flex items-center space-x-2">
+                                <FileText className="w-4 h-4 text-primary" />
+                                <span className="text-sm text-foreground">{material.title}</span>
+                                <Badge variant="outline" className="text-xs">{material.type}</Badge>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveMaterial(material.id)}
+                                className="h-6 w-6 p-0 rounded-full"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                          {selectedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-primary/10 rounded-lg">
+                              <div className="flex items-center space-x-2">
+                                <Paperclip className="w-4 h-4 text-primary" />
+                                <span className="text-sm text-foreground">{file.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {(file.size / 1024).toFixed(1)} KB
+                                </span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveFile(index)}
+                                className="h-6 w-6 p-0 rounded-full"
+                              >
+                                <X className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Attachment Picker */}
+                      {showAttachmentPicker && <AttachmentPicker />}
+
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <Button 
                             variant="ghost" 
                             size="sm" 
                             onClick={handleAttachStudyMaterial}
-                            className="rounded-full"
+                            className={`rounded-full ${showAttachmentPicker ? 'bg-primary/10 text-primary' : ''}`}
                           >
-                            <BookOpen className="w-4 h-4 mr-2" />
-                            Study Material
+                            <Paperclip className="w-4 h-4 mr-2" />
+                            Attach Files
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={handleAttachAchievement}
-                            className="rounded-full"
-                          >
-                            <Award className="w-4 h-4 mr-2" />
-                            Achievement
-                          </Button>
+                          <input
+                            type="file"
+                            id="quick-file-upload"
+                            multiple
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            accept="image/*,.pdf,.doc,.docx,.txt"
+                          />
+                          <label htmlFor="quick-file-upload">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              type="button"
+                              onClick={() => document.getElementById('quick-file-upload')?.click()}
+                              className="rounded-full"
+                            >
+                              <ImageIcon className="w-4 h-4 mr-2" />
+                              Image
+                            </Button>
+                          </label>
                         </div>
                         <Button 
                           onClick={handleCreatePost}
-                          disabled={!newPost.trim()}
+                          disabled={!newPost.trim() || isPosting}
                           className="clay-button text-white rounded-xl"
                         >
-                          <Send className="w-4 h-4 mr-2" />
-                          Post
+                          {isPosting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Posting...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4 mr-2" />
+                              Post
+                            </>
+                          )}
                         </Button>
                       </div>
                     </div>

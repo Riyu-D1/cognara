@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
 // API Configuration
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
+const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1';
+const MISTRAL_API_BASE = OPENROUTER_API_BASE; // Using OpenRouter as the API gateway
 
 interface GenerateContentOptions {
   sourceType: 'youtube' | 'file' | 'text';
@@ -35,7 +35,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Check if API key is configured
 export function isAPIConfigured(): boolean {
-  const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+  const apiKey = import.meta.env.VITE_MISTRAL_API_KEY;
   console.log('Checking API configuration:', {
     hasApiKey: !!apiKey,
     keyLength: apiKey?.length || 0,
@@ -48,48 +48,47 @@ export function isAPIConfigured(): boolean {
 // Test API connection
 export async function testAPIConnection(): Promise<{ success: boolean; error?: string }> {
   try {
-    const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+    const apiKey = import.meta.env.VITE_MISTRAL_API_KEY;
     if (!apiKey || apiKey === 'demo_key_please_replace') {
-      return { success: false, error: 'API key not configured' };
+      return { success: false, error: 'Mistral API key not configured' };
     }
 
-    console.log('Testing Google AI API with key:', apiKey.substring(0, 20) + '...');
-    const genAI = new GoogleGenerativeAI(apiKey);
+    console.log('Testing OpenRouter API with key:', apiKey.substring(0, 20) + '...');
     
-    // Try different models in order of preference (updated model names)
-    const modelsToTry = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
-    
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`Testing model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ 
-          model: modelName,
-          generationConfig: {
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40,
-            maxOutputTokens: 100,
-          }
-        });
-        
-        const result = await model.generateContent('Respond with: API test successful');
-        const response = await result.response;
-        const text = response.text();
-        
-        if (text && text.trim().length > 0) {
-          console.log(`✅ Google AI API connection successful with model: ${modelName}`);
-          console.log('Response:', text);
-          return { success: true };
-        }
-      } catch (modelError) {
-        console.log(`Model ${modelName} failed:`, modelError);
-        continue; // Try next model
-      }
+    // Test with a simple chat completion request via OpenRouter
+    const response = await fetch(`${MISTRAL_API_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+        'X-Title': 'StudyFlow'
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct:free', // Using free tier
+        messages: [{ role: 'user', content: 'Respond with: API test successful' }],
+        max_tokens: 50
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Mistral AI API test failed:', errorText);
+      return { success: false, error: `HTTP ${response.status}: ${errorText}` };
     }
-    
-    return { success: false, error: 'All models failed - check API key permissions' };
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content;
+
+    if (text && text.trim().length > 0) {
+      console.log('✅ Mistral AI API connection successful');
+      console.log('Response:', text);
+      return { success: true };
+    }
+
+    return { success: false, error: 'Empty response from API' };
   } catch (error) {
-    console.error('❌ Google AI API connection failed:', error);
+    console.error('❌ Mistral AI API connection failed:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -128,26 +127,26 @@ export async function testYouTubeAPI(): Promise<{ success: boolean; error?: stri
 
 // Test all API connections
 export async function testAllAPIs(): Promise<{ 
-  googleAI: { success: boolean; error?: string };
+  mistralAI: { success: boolean; error?: string };
   youtube: { success: boolean; error?: string };
 }> {
   console.log('🔍 Testing API connections...');
   
-  const [googleAI, youtube] = await Promise.all([
+  const [mistralAI, youtube] = await Promise.all([
     testAPIConnection(),
     testYouTubeAPI()
   ]);
   
-  return { googleAI, youtube };
+  return { mistralAI, youtube };
 }
 
-// Get model suggestions for common issues
+// Get model suggestions for Mistral
 export function getModelSuggestions(): string[] {
   return [
-    'gemini-2.0-flash',
-    'gemini-2.5-flash',
-    'gemini-flash-latest',
-    'learnlm-2.0-flash-experimental'
+    'mistral-tiny',
+    'mistral-small-latest',
+    'mistral-medium-latest',
+    'mistral-large-latest'
   ];
 }
 
@@ -165,10 +164,10 @@ export async function generateContent({
   contentType,
   additionalContext = ''
 }: GenerateContentOptions): Promise<AIResponse> {
-  const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+  const apiKey = import.meta.env.VITE_MISTRAL_API_KEY;
   
   if (!apiKey || apiKey === 'demo_key_please_replace') {
-    throw new AIError('Google AI API key is not configured. Please check your environment variables.', 'MISSING_API_KEY', false);
+    throw new AIError('OpenRouter API key is not configured. Please check your environment variables.', 'MISSING_API_KEY', false);
   }
 
   if (!content?.trim()) {
@@ -178,43 +177,34 @@ export async function generateContent({
   // Retry logic for API calls
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Try different models in order of preference (updated model names)
-      const modelsToTry = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-flash-latest'];
-      let model;
-      let modelUsed = '';
-      
-      for (const modelName of modelsToTry) {
-        try {
-          model = genAI.getGenerativeModel({ 
-            model: modelName,
-            generationConfig: {
-              temperature: 0.7,
-              topP: 0.8,
-              topK: 40,
-              maxOutputTokens: 2048,
-            }
-          });
-          modelUsed = modelName;
-          break; // Use first available model
-        } catch (modelError) {
-          console.log(`Model ${modelName} not available, trying next...`);
-          continue;
-        }
-      }
-      
-      if (!model) {
-        throw new AIError('No compatible AI models available', 'NO_MODEL_AVAILABLE', false);
-      }
-
       const prompt = buildPrompt(contentType, sourceType, content, additionalContext);
       
-      console.log(`Generating ${contentType} content using Google AI (attempt ${attempt}/${MAX_RETRIES}) with model: ${modelUsed}...`);
+      console.log(`Generating ${contentType} content using OpenRouter (attempt ${attempt}/${MAX_RETRIES})...`);
       
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const responseText = response.text();
+      // Call OpenRouter API (which routes to Mistral)
+      const response = await fetch(`${MISTRAL_API_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+          'X-Title': 'StudyFlow'
+        },
+        body: JSON.stringify({
+          model: 'mistralai/mistral-7b-instruct:free', // OpenRouter free tier model
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 2048
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      const responseText = data.choices?.[0]?.message?.content;
       
       if (!responseText?.trim()) {
         throw new AIError('Empty response from AI service', 'EMPTY_RESPONSE', true);
@@ -233,13 +223,13 @@ export async function generateContent({
         throw error;
       }
       
-      // Handle specific Google AI errors
+      // Handle specific errors
       if (error instanceof Error) {
-        if (error.message.includes('API key')) {
-          throw new AIError('Google AI API key is invalid. Please check your API key configuration.', 'INVALID_API_KEY', false);
+        if (error.message.includes('API key') || error.message.includes('401')) {
+          throw new AIError('OpenRouter API key is invalid. Please check your API key configuration at https://openrouter.ai/keys', 'INVALID_API_KEY', false);
         }
-        if (error.message.includes('quota') || error.message.includes('limit')) {
-          throw new AIError('Google AI API quota exceeded. Please try again later or check your API limits.', 'QUOTA_EXCEEDED', attempt < MAX_RETRIES);
+        if (error.message.includes('quota') || error.message.includes('limit') || error.message.includes('429')) {
+          throw new AIError('OpenRouter API quota exceeded. Please add credits at https://openrouter.ai/credits', 'QUOTA_EXCEEDED', attempt < MAX_RETRIES);
         }
         if (error.message.includes('blocked') || error.message.includes('safety')) {
           throw new AIError('Content was blocked by AI safety filters. Please try with different content.', 'CONTENT_BLOCKED', false);

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 
@@ -42,7 +42,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-  Star
+  Star,
+  Loader2,
+  X
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -56,7 +58,29 @@ interface SettingsPageProps {
 export function SettingsPage({ userName, userEmail, userAvatar, authProvider, onLogout }: SettingsPageProps) {
   const settings = useSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState(userAvatar);
+
+  // Load avatar from database on component mount
+  useEffect(() => {
+    const loadAvatar = async () => {
+      try {
+        const { userProfileService } = await import('../services/social');
+        const profile = await userProfileService.getCurrentUserProfile();
+        
+        if (profile?.avatar_url) {
+          console.log('Loaded avatar from database:', profile.avatar_url.substring(0, 100));
+          setCurrentAvatar(profile.avatar_url);
+        }
+      } catch (error) {
+        console.error('Error loading avatar:', error);
+      }
+    };
+
+    loadAvatar();
+  }, []); // Run once on mount
 
   const handleFontSizeChange = (size: 'small' | 'medium' | 'large') => {
     const sizeMap = { small: 12, medium: 14, large: 16 };
@@ -117,6 +141,150 @@ export function SettingsPage({ userName, userEmail, userAvatar, authProvider, on
     toast.success('Settings reset to defaults');
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 2MB for better compatibility)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image size should be less than 2MB');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    
+    try {
+      const { supabase } = await import('../utils/supabase/client');
+      const { userProfileService } = await import('../services/social');
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      // Check if storage bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const bucketExists = buckets?.some(b => b.name === 'user-content');
+      
+      if (!bucketExists) {
+        console.log('Storage bucket not found, using base64 fallback');
+        
+        // Convert image to base64
+        const reader = new FileReader();
+        const base64Url = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        console.log('Base64 conversion successful, updating profile...');
+        console.log('Base64 URL length:', base64Url.length);
+        console.log('Base64 URL preview:', base64Url.substring(0, 100) + '...');
+        
+        // Update user profile with base64 data
+        const updatedProfile = await userProfileService.updateUserProfile({
+          avatar_url: base64Url
+        });
+        
+        console.log('Update profile result:', updatedProfile);
+        
+        if (updatedProfile) {
+          setCurrentAvatar(base64Url);
+          toast.success('✅ Profile picture updated!');
+          toast.info('💡 Create "user-content" bucket in Supabase Storage for permanent hosting', { 
+            duration: 4000 
+          });
+        } else {
+          throw new Error('Failed to update profile - check console for details');
+        }
+        
+        return; // Exit early with base64 success
+      }
+
+      // If bucket exists, try normal storage upload
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      console.log('Uploading to storage:', filePath);
+      
+      const { error: uploadError } = await supabase.storage
+        .from('user-content')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Storage upload failed:', uploadError);
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('user-content')
+        .getPublicUrl(filePath);
+
+      const avatarUrl = urlData.publicUrl;
+      
+      if (!avatarUrl) {
+        throw new Error('Failed to generate public URL');
+      }
+
+      // Update user profile
+      const updatedProfile = await userProfileService.updateUserProfile({
+        avatar_url: avatarUrl
+      });
+
+      if (updatedProfile) {
+        setCurrentAvatar(avatarUrl);
+        toast.success('Profile picture updated successfully!');
+      } else {
+        throw new Error('Failed to update profile');
+      }
+      
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to upload: ${errorMessage}`);
+    } finally {
+      setUploadingAvatar(false);
+      // Reset file input
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!confirm('Are you sure you want to remove your profile picture?')) {
+      return;
+    }
+
+    try {
+      const { userProfileService } = await import('../services/social');
+      
+      const updatedProfile = await userProfileService.updateUserProfile({
+        avatar_url: undefined
+      });
+
+      if (updatedProfile) {
+        setCurrentAvatar(undefined);
+        toast.success('Profile picture removed');
+      }
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      toast.error('Failed to remove profile picture');
+    }
+  };
+
   const getProviderBadge = () => {
     if (!authProvider) return null;
     
@@ -175,19 +343,49 @@ export function SettingsPage({ userName, userEmail, userAvatar, authProvider, on
               <div className="text-center space-y-4">
                 <div className="relative">
                   <Avatar className="w-24 h-24 mx-auto shadow-[4px_4px_8px_rgba(15,23,42,0.15)]">
-                    {userAvatar && <AvatarImage src={userAvatar} alt={userName} />}
+                    {currentAvatar && <AvatarImage src={currentAvatar} alt={userName} />}
                     <AvatarFallback className="bg-gradient-to-br from-[#2563EB] to-[#1E40AF] text-white text-2xl font-semibold">
                       {userName.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <Button 
                     size="sm"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
                     className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-white shadow-[4px_4px_8px_rgba(15,23,42,0.15)] hover:shadow-[6px_6px_12px_rgba(15,23,42,0.2)] p-0 border-0"
                     variant="outline"
+                    title="Change profile picture"
                   >
-                    <Edit className="w-4 h-4 text-[#64748B]" />
+                    {uploadingAvatar ? (
+                      <Loader2 className="w-4 h-4 text-[#64748B] animate-spin" />
+                    ) : (
+                      <Edit className="w-4 h-4 text-[#64748B]" />
+                    )}
                   </Button>
+                  {currentAvatar && (
+                    <Button 
+                      size="sm"
+                      onClick={handleRemoveAvatar}
+                      className="absolute -bottom-2 -left-2 w-10 h-10 rounded-xl bg-white shadow-[4px_4px_8px_rgba(15,23,42,0.15)] hover:shadow-[6px_6px_12px_rgba(15,23,42,0.2)] hover:bg-destructive/10 p-0 border-0"
+                      variant="outline"
+                      title="Remove profile picture"
+                    >
+                      <X className="w-4 h-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+                {uploadingAvatar && (
+                  <p className="text-sm text-muted-foreground animate-pulse">
+                    Uploading profile picture...
+                  </p>
+                )}
                 
                 <div>
                   <h3 className="text-xl font-semibold text-foreground">{userName}</h3>

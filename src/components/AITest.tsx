@@ -155,34 +155,10 @@ export default function AITest() {
 
     try {
       console.log('Sending message to AI:', userMessage.text);
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
       
-      if (!apiKey || apiKey === 'demo_key_please_replace') {
-        throw new Error('Google AI API key is not configured. Please check your environment variables.');
-      }
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 2048,
-        }
-      });
-
-      const prompt = `You are a helpful AI study assistant for students. Be friendly, encouraging, and provide clear explanations. Help with studying, concepts, homework questions, and study tips. 
-
-User message: ${userMessage.text}
-
-Respond helpfully and conversationally.`;
-
-      console.log('Making API call with prompt length:', prompt.length);
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      // Use the OpenRouter-based AI service
+      const { chatWithAI } = await import('../services/ai');
+      const text = await chatWithAI(userMessage.text);
       
       console.log('AI response received:', text.substring(0, 100) + '...');
 
@@ -272,25 +248,9 @@ Respond helpfully and conversationally.`;
         }
       }
 
-      // Use Google AI to analyze video
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+      // Use OpenRouter AI to analyze video
+      const { chatWithAI } = await import('../services/ai');
       
-      if (!apiKey || apiKey === 'demo_key_please_replace') {
-        throw new Error('Google AI API key is not configured');
-      }
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 2048,
-        }
-      });
-
       const prompt = `Analyze this YouTube video and create comprehensive study content:
 
 Video URL: ${youtubeUrl}
@@ -307,9 +267,7 @@ Since I don't have access to the actual video content, please provide general st
 Please provide practical, actionable advice for studying from this video format.`;
 
       console.log('Sending video analysis request to AI');
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const aiText = response.text();
+      const aiText = await chatWithAI(prompt);
 
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),

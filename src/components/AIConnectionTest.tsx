@@ -11,7 +11,7 @@ interface APITestResult {
 }
 
 interface APIStatus {
-  googleAI: APITestResult;
+  mistralAI: APITestResult;
   youtube: APITestResult;
 }
 
@@ -24,41 +24,55 @@ export function AIConnectionTest() {
     setStatus(null);
 
     try {
-      // Test Google AI API
-      console.log('Testing Google AI API...');
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
+      // Test Mistral AI API
+      console.log('Testing Mistral AI API...');
+      const apiKey = import.meta.env.VITE_MISTRAL_API_KEY;
       
       if (!apiKey || apiKey === 'demo_key_please_replace') {
         setStatus({
-          googleAI: { success: false, error: 'API key not configured' },
-          youtube: { success: false, error: 'Skipped due to Google AI failure' }
+          mistralAI: { success: false, error: 'API key not configured' },
+          youtube: { success: false, error: 'Skipped due to Mistral AI failure' }
         });
         setTesting(false);
         return;
       }
 
-      // Dynamic import to avoid build issues
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      let googleAIResult: APITestResult = { success: false, error: 'Unknown error' };
+      let mistralAIResult: APITestResult = { success: false, error: 'Unknown error' };
       
       try {
-        console.log('Testing with gemini-2.0-flash model...');
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-        const result = await model.generateContent('Test connection - please respond with "API connection successful"');
-        const response = await result.response;
-        const text = response.text();
-        
-        if (text && text.length > 0) {
-          googleAIResult = { success: true };
-          console.log('✅ Google AI API test successful:', text);
+        console.log('Testing OpenRouter API connection...');
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'StudyFlow'
+          },
+          body: JSON.stringify({
+            model: 'mistralai/mistral-7b-instruct:free',
+            messages: [{ role: 'user', content: 'Test connection - please respond with "API connection successful"' }],
+            max_tokens: 50
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const text = data.choices?.[0]?.message?.content;
+          
+          if (text && text.length > 0) {
+            mistralAIResult = { success: true };
+            console.log('✅ Mistral AI API test successful:', text);
+          } else {
+            mistralAIResult = { success: false, error: 'Empty response from API' };
+          }
         } else {
-          googleAIResult = { success: false, error: 'Empty response from API' };
+          const errorText = await response.text();
+          mistralAIResult = { success: false, error: `HTTP ${response.status}: ${errorText}` };
         }
       } catch (error) {
-        console.error('❌ Google AI API test failed:', error);
-        googleAIResult = { 
+        console.error('❌ Mistral AI API test failed:', error);
+        mistralAIResult = { 
           success: false, 
           error: error instanceof Error ? error.message : 'Connection failed' 
         };
@@ -99,14 +113,14 @@ export function AIConnectionTest() {
       }
 
       setStatus({
-        googleAI: googleAIResult,
+        mistralAI: mistralAIResult,
         youtube: youtubeResult
       });
 
     } catch (error) {
       console.error('❌ API testing failed:', error);
       setStatus({
-        googleAI: { success: false, error: 'Failed to load AI library' },
+        mistralAI: { success: false, error: 'Failed to connect to Mistral AI' },
         youtube: { success: false, error: 'Test skipped due to previous failure' }
       });
     } finally {
@@ -155,18 +169,18 @@ export function AIConnectionTest() {
       </div>
 
       <div className="space-y-3">
-        {/* Google AI Status */}
+        {/* OpenRouter AI Status */}
         <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
           <div className="flex items-center space-x-3">
-            {getStatusIcon(status?.googleAI?.success || false)}
+            {getStatusIcon(status?.mistralAI?.success || false)}
             <div>
-              <p className="font-medium">Google AI (Gemini)</p>
+              <p className="font-medium">OpenRouter AI (Mistral)</p>
               <p className="text-sm text-muted-foreground">
-                {status?.googleAI?.error || 'Core AI functionality for chat and content generation'}
+                {status?.mistralAI?.error || 'Core AI functionality for chat and content generation'}
               </p>
             </div>
           </div>
-          {status && getStatusBadge(status.googleAI.success, status.googleAI.error)}
+          {status && getStatusBadge(status.mistralAI.success, status.mistralAI.error)}
         </div>
 
         {/* YouTube API Status */}
@@ -190,9 +204,9 @@ export function AIConnectionTest() {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
-              import.meta.env.VITE_GOOGLE_AI_KEY ? 'bg-green-500' : 'bg-red-500'
+              import.meta.env.VITE_MISTRAL_API_KEY ? 'bg-green-500' : 'bg-red-500'
             }`} />
-            <span>VITE_GOOGLE_AI_KEY</span>
+            <span>VITE_MISTRAL_API_KEY</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
