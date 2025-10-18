@@ -456,7 +456,7 @@ For example:
     );
   }
 
-  // List view
+    // List view
   return (
     <div className="p-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
@@ -480,10 +480,10 @@ For example:
       </div>
 
       {/* Subject Filter */}
-      <div className="flex items-center space-x-3">
-        <span className="text-muted-foreground">Filter by subject:</span>
-        <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="cursor-pointer hover:bg-muted">
+      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+        <span className="text-muted-foreground text-sm lg:text-base">Filter by subject:</span>
+        <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+          <Badge variant="outline" className="cursor-pointer hover:bg-muted whitespace-nowrap">
             All ({savedNotes.length})
           </Badge>
           {Array.from(new Set(savedNotes.map(note => note.subject))).map((subject) => (
