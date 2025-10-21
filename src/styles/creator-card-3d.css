@@ -1,0 +1,265 @@
+/* Creator Card Container - Matches glass-container style */
+.creator-card-container {
+  position: relative;
+  min-height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 0;
+  padding: 2rem;
+}
+
+/* Animated bubbles matching the feature cards */
+.creator-card-container::after {
+  content: " ";
+  position: absolute;
+  height: 250px;
+  width: 250px;
+  left: 15%;
+  top: 20%;
+  background-image: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-radius: 50%;
+  z-index: 0;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    inset 15px 0px 30px rgba(255, 255, 255, 0.4),
+    0 0 80px rgba(59, 130, 246, 0.6);
+  animation: float-bubble-1 20s ease-in-out infinite;
+  filter: blur(50px);
+  opacity: 0.7;
+}
+
+.creator-card-container::before {
+  content: " ";
+  position: absolute;
+  height: 180px;
+  width: 180px;
+  right: 15%;
+  bottom: 25%;
+  background-image: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 50%;
+  z-index: 0;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    inset 15px 0px 30px rgba(255, 255, 255, 0.4),
+    0 0 80px rgba(102, 126, 234, 0.6);
+  animation: float-bubble-2 16s ease-in-out infinite;
+  filter: blur(50px);
+  opacity: 0.7;
+}
+
+/* Third bubble */
+.creator-card-extra-bubble {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 150px;
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  border-radius: 50%;
+  opacity: 0.6;
+  filter: blur(50px);
+  animation: float-bubble-3 14s ease-in-out infinite;
+  z-index: 0;
+}
+
+/* Glass card style for creator content */
+.creator-card-glass {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  min-height: 500px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2rem;
+  box-shadow: 
+    inset 2px 1px 6px rgba(255, 255, 255, 0.27),
+    0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  overflow: hidden;
+  z-index: 1;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.creator-card-glass:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    inset 2px 1px 6px rgba(255, 255, 255, 0.35),
+    0 12px 48px 0 rgba(31, 38, 135, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Animated shine effect */
+.creator-card-glass::after {
+  z-index: -1;
+  content: " ";
+  position: absolute;
+  width: 150%;
+  top: 0;
+  left: 0;
+  height: 12px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: rotateZ(50deg);
+  filter: blur(30px);
+  animation: shine 10s ease infinite;
+  pointer-events: none;
+}
+
+/* Logo styling */
+.creator-card-logo {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  box-shadow: 
+    0 10px 30px rgba(59, 130, 246, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.creator-card-glass:hover .creator-card-logo {
+  transform: scale(1.1);
+  box-shadow: 
+    0 15px 40px rgba(59, 130, 246, 0.6),
+    inset 0 0 25px rgba(255, 255, 255, 0.3);
+}
+
+/* Text styling matching glass-card */
+.creator-card-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.creator-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.creator-card-description {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* LinkedIn button */
+.creator-card-linkedin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #0077b5, #00a0dc);
+  border-radius: 12px;
+  color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 119, 181, 0.3);
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+}
+
+.creator-card-linkedin:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 119, 181, 0.5);
+}
+
+/* View more button */
+.creator-card-view-more {
+  position: relative;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.creator-card-view-more:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+}
+
+.creator-card-view-more:active {
+  transform: translateY(0);
+}
+
+/* Use the same animations from glassmorphism-cards.css */
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .creator-card-glass {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  
+  .creator-card-name {
+    color: #f7fafc;
+  }
+  
+  .creator-card-title {
+    color: #e2e8f0;
+  }
+  
+  .creator-card-description {
+    color: #e2e8f0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .creator-card-container {
+    min-height: 450px;
+    padding: 1.5rem;
+  }
+  
+  .creator-card-container::after {
+    height: 150px;
+    width: 150px;
+  }
+  
+  .creator-card-container::before {
+    height: 100px;
+    width: 100px;
+  }
+  
+  .creator-card-extra-bubble {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .creator-card-glass {
+    min-height: 450px;
+    padding: 1.5rem;
+  }
+  
+  .creator-card-logo {
+    width: 100px;
+    height: 100px;
+    font-size: 2rem;
+  }
+  
+  .creator-card-name {
+    font-size: 1.5rem;
+  }
+}

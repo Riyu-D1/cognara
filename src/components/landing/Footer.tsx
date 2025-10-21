@@ -10,7 +10,7 @@ export function Footer() {
             <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
               <Brain className="w-5 h-5 text-white" />
             </div>
-            <span className="font-semibold text-foreground">Cognara</span>
+            <span className="font-semibold text-foreground">StudyNet</span>
           </div>
           
           <div className="flex items-center space-x-6 text-sm text-muted-foreground">
@@ -21,7 +21,7 @@ export function Footer() {
         </div>
         
         <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          © 2025 Cognara. Empowering students to achieve more.
+          © 2025 StudyNet. Empowering students to achieve more.
         </div>
       </div>
     </footer>

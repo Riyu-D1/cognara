@@ -27,7 +27,7 @@ export function CTASection({ onTryApp }: CTASectionProps) {
             <div className="drawing-button__line"></div>
             <div className="drawing-button__text">
               <Zap className="w-5 h-5 mr-2" />
-              Try Cognara Free
+              Try StudyNet Free
             </div>
             <div className="drawing-button__drow1"></div>
             <div className="drawing-button__drow2"></div>

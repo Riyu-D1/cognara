@@ -7,7 +7,7 @@
 1. **Open Supabase Dashboard:**
    - Go to: https://supabase.com/dashboard
    - Sign in if needed
-   - Select your project: **cognara** or your project name
+   - Select your project: **StudyNet** or your project name
 
 2. **Navigate to Storage:**
    - Click **"Storage"** in the left sidebar

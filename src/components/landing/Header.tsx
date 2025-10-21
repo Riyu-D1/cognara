@@ -22,7 +22,7 @@ export function Header({ onTryApp, onNavigateToAbout }: HeaderProps) {
             <div className="w-10 h-10 bg-gradient-to-r from-primary to-accent rounded-xl flex items-center justify-center clay-glow-primary">
               <Brain className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-semibold text-foreground">Cognara</h1>
+            <h1 className="text-xl font-semibold text-foreground">StudyNet</h1>
           </div>
           
           <nav className="hidden md:flex items-center space-x-4">

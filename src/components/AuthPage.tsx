@@ -245,8 +245,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
 
         {/* Footer */}
         <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">
-            By continuing, you agree to Cognara's Terms of Service and Privacy Policy
+          <p className="text-xs text-muted-foreground text-center mt-6">
+            By continuing, you agree to StudyNet's Terms of Service and Privacy Policy
           </p>
         </div>
       </div>

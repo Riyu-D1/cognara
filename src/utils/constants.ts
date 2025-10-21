@@ -8,7 +8,7 @@ export const BYPASS_AUTH = true;
 export const mockUser = {
   id: 'dev-user-123',
   name: 'Dev User',
-  email: 'developer@cognara.com',
+  email: 'developer@studynet.com',
   avatar_url: null,
   provider: 'mock'
 };

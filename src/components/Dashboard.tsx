@@ -86,20 +86,10 @@ export function Dashboard({ userName, onNavigate }: DashboardProps) {
     <div className="p-8 space-y-8 bg-background min-h-screen">
       {/* Welcome Header */}
       <div className="clay-card p-8">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold text-foreground">
-              Hi {userName}, ready to study?
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Let's make today productive! Here's your study dashboard.
-            </p>
+                  <div className="flex items-center gap-2 mb-1">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-muted-foreground text-sm">StudyNet Active</span>
           </div>
-          <div className="hidden md:flex items-center space-x-2">
-            <div className="w-3 h-3 bg-accent rounded-full animate-pulse clay-glow-accent"></div>
-            <span className="text-muted-foreground text-sm">Cognara Active</span>
-          </div>
-        </div>
       </div>
 
       {/* Stats Cards */}

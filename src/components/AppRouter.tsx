@@ -89,7 +89,7 @@ export function AppRouter({
           {currentScreen === 'settings' && (
             <SettingsPage 
               userName={user?.name || user?.email?.split('@')[0] || 'Dev User'} 
-              userEmail={user?.email || 'developer@Cognara.com'}
+              userEmail={user?.email || 'developer@studynet.com'}
               userAvatar={user?.avatar_url || undefined}
               authProvider={user?.provider || 'mock'}
               onLogout={handleLogout} 

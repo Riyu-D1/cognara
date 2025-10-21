@@ -13,7 +13,8 @@ import {
   Code,
   GraduationCap,
   Rocket,
-  Star
+  Star,
+  Linkedin
 } from 'lucide-react';
 import { fadeInUp, staggerContainer, fadeInOnView } from './landing/animations';
 
@@ -53,8 +54,8 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
   const milestones = [
     { year: "2024", title: "The Frustration", description: "Experiencing fragmented tools and isolated studying as a student" },
     { year: "Q2", title: "The Vision", description: "Conceptualizing a unified platform combining AI tools with community" },
-    { year: "Q3", title: "The Build", description: "Developing Cognara with AI-powered features and social connectivity" },
-    { year: "Q4", title: "The Launch", description: "Bringing Cognara to students who share the same frustrations" }
+    { year: "Q3", title: "The Build", description: "Developing StudyNet with AI-powered features and social connectivity" },
+    { year: "Q4", title: "The Launch", description: "Bringing StudyNet to students who share the same frustrations" }
   ];
 
   return (
@@ -81,7 +82,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center clay-glow-primary">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-foreground">About Cognara</span>
+              <span className="font-semibold text-foreground">About StudyNet</span>
             </div>
             
             <div 
@@ -91,7 +92,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <div className="drawing-button__line"></div>
               <div className="drawing-button__line"></div>
               <div className="drawing-button__text">
-                Try Cognara
+                Try StudyNet
               </div>
               <div className="drawing-button__drow1"></div>
               <div className="drawing-button__drow2"></div>
@@ -127,7 +128,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               variants={fadeInUp}
               className="text-xl text-muted-foreground leading-relaxed"
             >
-              Cognara was born from a simple yet powerful vision: to harness the potential of artificial intelligence 
+              StudyNet was born from a simple yet powerful vision: to harness the potential of artificial intelligence 
               to transform how students learn, study, and achieve their academic goals.
             </motion.p>
           </motion.div>
@@ -135,7 +136,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
       </section>
 
       {/* Creator Section */}
-      <section className="py-20 px-6 bg-muted/30">
+      <section id="creator-section" className="py-20 px-6 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <motion.div 
             className="grid lg:grid-cols-2 gap-16 items-center"
@@ -148,10 +149,10 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               </h2>
               <div className="space-y-6">
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  I created Cognara because I've always believed that learning should feel connected and empowering. As a student, I noticed that while there are countless study tools, none truly bring students together to share their knowledge, celebrate their academic success, and learn from one another. Frustrated by inefficient study methods and scattered platforms, I set out to design a solution that combines intelligent tools with a sense of community.
+                  I created StudyNet because I've always believed that learning should feel connected and empowering. As a student, I noticed that while there are countless study tools, none truly bring students together to share their knowledge, celebrate their academic success, and learn from one another. Frustrated by inefficient study methods and scattered platforms, I set out to design a solution that combines intelligent tools with a sense of community.
                 </p>
                 <p className="text-lg text-muted-foreground leading-relaxed">
-                  With my passion for technology, product design, and education, I built Cognara as more than just a study assistant—it's a space where students can organize their learning, gain insights with AI, and connect through shared achievements.
+                  With my passion for technology, product design, and education, I built StudyNet as more than just a study assistant—it's a space where students can organize their learning, gain insights with AI, and connect through shared achievements.
                 </p>
                 <div className="flex items-center space-x-4 pt-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
@@ -165,29 +166,46 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               </div>
             </div>
             
-            <Card className="p-8 clay-card border-0">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-gradient-to-r from-accent-indigo to-accent-cyan rounded-full flex items-center justify-center mx-auto mb-6 clay-elevated">
-                  <span className="text-2xl font-bold text-blue-600">RD</span>
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">Creator's Vision</h3>
-                <p className="text-muted-foreground leading-relaxed mb-6 italic">
+            <div className="creator-card-container">
+              {/* Extra animated bubble */}
+              <div className="creator-card-extra-bubble" />
+              
+              <div className="creator-card-glass">
+                <div className="creator-card-logo">RD</div>
+                
+                <h3 className="creator-card-name" style={{ color: '#1a202c' }}>Rohan Diwan</h3>
+                <p className="creator-card-title" style={{ color: '#2d3748' }}>Creator & Developer</p>
+                <p className="creator-card-description" style={{ color: '#2d3748' }}>
                   "I don't just build tools, I build possibilities—because learning should flow as effortlessly as ideas do."
                 </p>
-                <div className="flex justify-center">
-                  <Badge variant="secondary" className="bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-primary/20">
-                    <Star className="w-3 h-3 mr-1" />
-                    Innovation & Learning
-                  </Badge>
-                </div>
+                
+                <a 
+                  href="https://www.linkedin.com/in/rohan-diwan/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="creator-card-linkedin"
+                  aria-label="Connect on LinkedIn"
+                >
+                  <Linkedin className="w-6 h-6" />
+                </a>
+                
+                <button 
+                  onClick={() => {
+                    const nextSection = document.getElementById('values-section');
+                    nextSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="creator-card-view-more"
+                >
+                  View More
+                </button>
               </div>
-            </Card>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Vision & Values */}
-      <section className="py-20 px-6">
+      <section id="values-section" className="py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div 
             className="text-center mb-16"
@@ -198,7 +216,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <span className="bg-gradient-to-r from-primary to-accent-cyan bg-clip-text text-transparent"> Values</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Born from the frustration of fragmented tools and isolated studying, Cognara merges AI-powered 
+              Born from the frustration of fragmented tools and isolated studying, StudyNet merges AI-powered 
               productivity with genuine community connection.
             </p>
           </motion.div>
@@ -234,7 +252,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
           >
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
               The Story Behind
-              <span className="bg-gradient-to-r from-accent-indigo to-accent bg-clip-text text-transparent"> Cognara</span>
+              <span className="bg-gradient-to-r from-accent-indigo to-accent bg-clip-text text-transparent"> StudyNet</span>
             </h2>
           </motion.div>
 
@@ -260,7 +278,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <Card className="p-8 clay-card border-0 clay-glow-subtle">
                 <h3 className="text-xl font-semibold text-foreground mb-4">The Solution I Built</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  I created Cognara to solve this exact problem. My vision was to build a space that merges AI-powered study tools 
+                  I created StudyNet to solve this exact problem. My vision was to build a space that merges AI-powered study tools 
                   with a collaborative community. A platform that helps students generate summaries, flashcards, and quizzes 
                   effortlessly, while also giving them a place to share progress, exchange tips, and learn collectively.
                 </p>
@@ -271,7 +289,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <Card className="p-8 clay-card border-0">
                 <h3 className="text-xl font-semibold text-foreground mb-4">The Impact We're Making</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  At its core, Cognara isn't just another productivity app—it's a response to the real frustrations students face daily. 
+                  At its core, StudyNet isn't just another productivity app—it's a response to the real frustrations students face daily. 
                   It combines design, technology, and a belief that learning should be both personalized and shared, turning studying 
                   from a solitary grind into an engaging, supportive journey.
                 </p>
@@ -293,7 +311,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"> Journey</span>
             </h2>
             <p className="text-xl text-muted-foreground">
-              From concept to reality - the Cognara timeline
+              From concept to reality - the StudyNet timeline
             </p>
           </motion.div>
 
@@ -328,7 +346,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               Join Our Mission
             </h2>
             <p className="text-xl text-white/90 mb-8 leading-relaxed">
-              Be part of the learning revolution. Experience the future of education with Cognara.
+              Be part of the learning revolution. Experience the future of education with StudyNet.
             </p>
             <div 
               onClick={onTryApp}
@@ -355,7 +373,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
               <div className="w-8 h-8 bg-gradient-to-r from-primary to-accent rounded-lg flex items-center justify-center">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-foreground">Cognara</span>
+              <span className="font-semibold text-foreground">StudyNet</span>
             </div>
             
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
@@ -367,7 +385,7 @@ export function AboutPage({ onNavigateBack, onTryApp }: AboutPageProps) {
           </div>
           
           <div className="mt-8 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-            © 2025 Cognara. Empowering students to achieve more.
+            © 2025 StudyNet. Empowering students to achieve more.
           </div>
         </div>
       </footer>

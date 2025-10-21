@@ -1,0 +1,259 @@
+/* Glassmorphism Card Container with Animated Background */
+.glass-container {
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 0;
+  padding: 2rem;
+}
+
+.glass-container::after {
+  content: " ";
+  position: absolute;
+  height: 250px;
+  width: 250px;
+  left: 15%;
+  top: 20%;
+  background-image: linear-gradient(135deg, #3b82f6, #2563eb);
+  border-radius: 50%;
+  z-index: 0;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    inset 15px 0px 30px rgba(255, 255, 255, 0.4),
+    0 0 80px rgba(59, 130, 246, 0.6);
+  animation: float-bubble-1 20s ease-in-out infinite;
+  filter: blur(50px);
+  opacity: 0.7;
+}
+
+.glass-container::before {
+  content: " ";
+  position: absolute;
+  height: 180px;
+  width: 180px;
+  right: 15%;
+  bottom: 25%;
+  background-image: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 50%;
+  z-index: 0;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    inset 15px 0px 30px rgba(255, 255, 255, 0.4),
+    0 0 80px rgba(102, 126, 234, 0.6);
+  animation: float-bubble-2 16s ease-in-out infinite;
+  filter: blur(50px);
+  opacity: 0.7;
+}
+
+/* Individual Glass Card */
+.glass-card {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2rem;
+  box-shadow: 
+    inset 2px 1px 6px rgba(255, 255, 255, 0.27),
+    0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  overflow: hidden;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    inset 2px 1px 6px rgba(255, 255, 255, 0.35),
+    0 12px 48px 0 rgba(31, 38, 135, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Animated shine effect */
+.glass-card::after {
+  z-index: -1;
+  content: " ";
+  position: absolute;
+  width: 150%;
+  top: 0;
+  left: 0;
+  height: 12px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+  transform: rotateZ(50deg);
+  filter: blur(30px);
+  animation: shine 10s ease infinite;
+  pointer-events: none;
+}
+
+/* Card content styling */
+.glass-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.glass-card:hover .glass-card-icon {
+  transform: scale(1.1) rotateZ(5deg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card-title {
+  color: #1a202c;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1rem 0;
+  letter-spacing: -0.02em;
+}
+
+.glass-card-desc {
+  padding: 0.5rem 0;
+  color: #2d3748;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.glass-card-badge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover .glass-card-badge {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes float-bubble-1 {
+  0% {
+    transform: translate(-50%, 0%) scale(1);
+  }
+  25% {
+    transform: translate(100%, -80px) scale(1.2);
+  }
+  50% {
+    transform: translate(-100%, 60px) scale(0.8);
+  }
+  75% {
+    transform: translate(80%, -40px) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, 0%) scale(1);
+  }
+}
+
+@keyframes float-bubble-2 {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(-120px, -60px) scale(1.3) rotate(120deg);
+  }
+  66% {
+    transform: translate(80px, 80px) scale(0.9) rotate(240deg);
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(360deg);
+  }
+}
+
+@keyframes float-bubble-3 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  40% {
+    transform: translate(-90px, 70px) scale(1.25);
+  }
+  80% {
+    transform: translate(60px, -50px) scale(0.85);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes shine {
+  0% {
+    top: 100%;
+    left: -100%;
+  }
+  50%,
+  100% {
+    top: -10%;
+    left: 110%;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  
+  .glass-card-icon {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  
+  .glass-card-title {
+    color: #f7fafc;
+  }
+  
+  .glass-card-desc {
+    color: #e2e8f0;
+    font-weight: 400;
+  }
+  
+  .glass-card-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: #f7fafc;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .glass-container::after {
+    height: 150px;
+    width: 150px;
+  }
+  
+  .glass-container::before {
+    height: 100px;
+    width: 100px;
+  }
+  
+  .glass-card {
+    min-height: 240px;
+    padding: 1.5rem;
+  }
+  
+  .glass-card-title {
+    font-size: 1.25rem;
+  }
+}
