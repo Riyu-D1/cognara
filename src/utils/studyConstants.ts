@@ -313,7 +313,6 @@ Cells are the fundamental units of life. All living organisms are composed of on
 3. Understand organelle functions
 4. Practice identifying structures`,
     subject: 'Biology',
-    tags: ['cells', 'organelles', 'membrane', 'prokaryotic', 'eukaryotic'],
     lastModified: '2 hours ago',
     wordCount: 245
   },
@@ -370,7 +369,6 @@ Predicts molecular geometry based on electron pair repulsion:
 - Predict molecular geometries
 - Identify intermolecular forces`,
     subject: 'Chemistry',
-    tags: ['bonding', 'ionic', 'covalent', 'VSEPR', 'Lewis structures'],
     lastModified: '1 day ago',
     wordCount: 298
   },
@@ -445,7 +443,6 @@ Predicts molecular geometry based on electron pair repulsion:
 - Decolonization movement
 - Nuclear age begins`,
     subject: 'History',
-    tags: ['WWII', 'timeline', 'battles', 'Hitler', 'Roosevelt', 'Churchill'],
     lastModified: '2 days ago',
     wordCount: 456
   },
@@ -522,7 +519,6 @@ Discriminant: Δ = b² - 4ac
 3. Factor: x² - 7x + 12
 4. Use quadratic formula: 2x² + 3x - 1 = 0`,
     subject: 'Math',
-    tags: ['quadratic', 'parabola', 'vertex', 'factoring', 'formula'],
     lastModified: '3 days ago',
     wordCount: 387
   }

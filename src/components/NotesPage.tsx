@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { ContentInputOptions } from './ContentInputOptions';
-import { hybridSyncService } from '../services/hybridSync';
+import LoadingAnimations from './LoadingAnimations';
+import { useStudyMaterials } from './StudyMaterialsContext';
 import { notesService } from '../services/database';
 import { 
   Sparkles, 
@@ -26,7 +29,8 @@ import {
   Grid3X3,
   BookOpen,
   Clock,
-  Target
+  Target,
+  Edit
 } from 'lucide-react';
 import { Screen } from '../utils/constants';
 import { mockNotes, getSubjectColor as getSubjectColorFromConstants } from '../utils/studyConstants';
@@ -40,45 +44,44 @@ interface Note {
   title: string;
   content: string;
   subject: string;
-  tags: string[];
   lastModified: string;
   wordCount: number;
 }
 
 export function NotesPage({ onNavigate }: NotesPageProps) {
-  const [viewMode, setViewMode] = useState<'list' | 'edit' | 'create'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'edit' | 'create' | 'view'>('list');
   const [notes, setNotes] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
+  const [isEditingMode, setIsEditingMode] = useState(false);
+  const [noteLength, setNoteLength] = useState<'short' | 'medium' | 'long'>('medium');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
 
+  // Use centralized study materials context
+  const { notes: savedNotes, setNotes: setSavedNotes, isLoading, isReady } = useStudyMaterials();
+  const [showLoading, setShowLoading] = useState(false);
 
-  // Wait for hybridSyncService to be ready before loading notes from localStorage
-  const [savedNotes, setSavedNotes] = useState<Note[]>([]);
-  const [notesReady, setNotesReady] = useState(false);
-
+  // Show loading only if context is still loading and it takes >300ms
   useEffect(() => {
-    hybridSyncService.onReady(() => {
-      try {
-        const storedNotes = localStorage.getItem('studyflow-notes');
-        setSavedNotes(storedNotes ? JSON.parse(storedNotes) : mockNotes);
-      } catch (error) {
-        console.error('Error loading notes from localStorage:', error);
-        setSavedNotes(mockNotes);
-      }
-      setNotesReady(true);
-    });
-  }, []);
-
-
-  // Save notes using hybrid sync (localStorage + database)
-  useEffect(() => {
-    if (notesReady) {
-      hybridSyncService.saveData('studyflow-notes', savedNotes);
+    let loadingTimer: NodeJS.Timeout | null = null;
+    
+    if (isLoading) {
+      loadingTimer = setTimeout(() => {
+        if (isLoading) {
+          setShowLoading(true);
+        }
+      }, 300);
+    } else {
+      setShowLoading(false);
     }
-  }, [savedNotes, notesReady]);
+
+    return () => {
+      if (loadingTimer) clearTimeout(loadingTimer);
+    };
+  }, [isLoading]);
 
   const handleSummarize = () => {
     setIsProcessing(true);
@@ -194,7 +197,6 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
       title: noteTitle,
       content: notes,
       subject: 'General', // Could be detected or selected
-      tags: [], // Could be auto-generated
       lastModified: 'Just now',
       wordCount: notes.split(' ').length
     };
@@ -224,7 +226,19 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
     setNotes(note.content);
     setShowContentOptions(false);
     setShowManualInput(true);
+    setIsEditingMode(true); // Start in edit mode for editing
     setViewMode('edit');
+  };
+
+  const viewNote = (note: Note) => {
+    setCurrentNoteId(note.id);
+    setNoteTitle(note.title);
+    setNotes(note.content);
+    setSelectedNote(note);
+    setShowContentOptions(false);
+    setShowManualInput(true);
+    setIsEditingMode(false); // View mode shows rendered markdown
+    setViewMode('view');
   };
 
   const deleteNote = async (id: number) => {
@@ -252,7 +266,7 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
       
       // If the note has a database ID, delete it from database too
       const noteInStorage = dataStr ? JSON.parse(dataStr).find((n: any) => n.id === id) : null;
-      if (noteInStorage?.db_id && hybridSyncService.getSyncStatus().isOnline) {
+      if (noteInStorage?.db_id && navigator.onLine) {
         console.log(`☁️ Deleting note ${noteInStorage.db_id} from database...`);
         const dbSuccess = await notesService.deleteNote(noteInStorage.db_id);
         if (dbSuccess) {
@@ -286,17 +300,17 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
 
   const getSubjectColor = getSubjectColorFromConstants;
 
-  if (viewMode === 'create' || viewMode === 'edit') {
+  if (viewMode === 'create' || viewMode === 'edit' || viewMode === 'view') {
     return (
       <div className="p-8 space-y-8 bg-background min-h-screen">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-2">
             <h1 className="text-3xl text-foreground font-semibold">
-              {viewMode === 'edit' ? 'Edit Note' : 'Create New Note'}
+              {viewMode === 'view' ? 'View Note' : viewMode === 'edit' ? 'Edit Note' : 'Create New Note'}
             </h1>
             <p className="text-muted-foreground">
-              {viewMode === 'edit' ? 'Update your note content' : 'Create notes from content or manually'}
+              {viewMode === 'view' ? 'Read your note' : viewMode === 'edit' ? 'Update your note content' : 'Create notes from content or manually'}
             </p>
           </div>
           <Button 
@@ -305,7 +319,7 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
             className="rounded-xl clay-input"
           >
             <X className="w-4 h-4 mr-2" />
-            Cancel
+            {viewMode === 'view' ? 'Close' : 'Cancel'}
           </Button>
         </div>
 
@@ -334,8 +348,8 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
             </Card>
           )}
 
-          {/* Manual Note Input */}
-          {(showManualInput || !showContentOptions || viewMode === 'edit') && (
+          {/* Manual Note Input / View */}
+          {(showManualInput || !showContentOptions || viewMode === 'edit' || viewMode === 'view') && (
             <>
               {/* Note Title */}
               <Card className="p-6 clay-card border-0">
@@ -357,62 +371,83 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
                         Back to content options
                       </Button>
                     )}
+                    {viewMode === 'view' && (
+                      <Button
+                        onClick={() => editNote(selectedNote!)}
+                        variant="outline"
+                        className="rounded-xl clay-input"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Note
+                      </Button>
+                    )}
                   </div>
                   <Input
                     placeholder="Enter note title..."
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
                     className="clay-input border-0"
+                    readOnly={viewMode === 'view'}
                   />
                 </div>
               </Card>
 
-              {/* Note Editor */}
+              {/* Note Editor / Viewer */}
               <Card className="p-6 clay-card border-0">
                 <div className="space-y-4">
-                  <h3 className="text-foreground">Note Editor</h3>
+                  <h3 className="text-foreground">{viewMode === 'view' ? 'Note Content' : 'Note Editor'}</h3>
                   
-                  {/* Toolbar */}
-                  <div className="flex items-center space-x-2 border-b border-border pb-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => formatText('bold')}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Bold className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => formatText('italic')}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Italic className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => formatText('highlight')}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Highlighter className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {viewMode !== 'view' && (
+                    <>
+                      {/* Toolbar */}
+                      <div className="flex items-center space-x-2 border-b border-border pb-4">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => formatText('bold')}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Bold className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => formatText('italic')}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Italic className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => formatText('highlight')}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Highlighter className="w-4 h-4" />
+                        </Button>
+                      </div>
 
-                  {/* Text Area */}
-                  <Textarea
-                    placeholder="Paste or type your notes here... 
+                      {/* Text Area */}
+                      <Textarea
+                        placeholder="Paste or type your notes here... 
 
 For example:
 • Cell membrane structure and function
 • Mitochondria - powerhouse of the cell
 • Nucleus contains genetic material
 • Ribosomes synthesize proteins"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-80 text-base clay-input border-0 resize-none"
-                  />
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="min-h-80 text-base clay-input border-0 resize-none"
+                      />
+                    </>
+                  )}
+                  
+                  {viewMode === 'view' && (
+                    <div className="prose prose-lg max-w-none dark:prose-invert min-h-80 p-4">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{notes}</ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </Card>
             </>
@@ -479,29 +514,37 @@ For example:
         </div>
       </div>
 
-      {/* Subject Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-        <span className="text-muted-foreground text-sm lg:text-base">Filter by subject:</span>
-        <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-          <Badge variant="outline" className="cursor-pointer hover:bg-muted whitespace-nowrap">
-            All ({savedNotes.length})
-          </Badge>
-          {Array.from(new Set(savedNotes.map(note => note.subject))).map((subject) => (
-            <Badge 
-              key={subject}
-              className={`cursor-pointer hover:opacity-80 ${getSubjectColor(subject)}`}
-            >
-              {subject} ({savedNotes.filter(note => note.subject === subject).length})
-            </Badge>
-          ))}
+      {/* Loading State */}
+      {showLoading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <LoadingAnimations variant="both" ariaLabel="Loading your notes" />
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Subject Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+            <span className="text-muted-foreground text-sm lg:text-base">Filter by subject:</span>
+            <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+              <Badge variant="outline" className="cursor-pointer hover:bg-muted whitespace-nowrap">
+                All ({savedNotes.length})
+              </Badge>
+              {Array.from(new Set(savedNotes.map(note => note.subject))).map((subject) => (
+                <Badge 
+                  key={subject}
+                  className={`cursor-pointer hover:opacity-80 ${getSubjectColor(subject)}`}
+                >
+                  {subject} ({savedNotes.filter(note => note.subject === subject).length})
+                </Badge>
+              ))}
+            </div>
+          </div>
 
-      {/* Notes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Notes Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {savedNotes.map((note) => (
           <Card 
             key={note.id}
+            onClick={() => viewNote(note)}
             className="p-6 clay-card border-0 hover:clay-elevated transition-all duration-200 cursor-pointer group"
           >
             <div className="space-y-4">
@@ -518,11 +561,22 @@ For example:
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      editNote(note);
+                      viewNote(note);
                     }}
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary"
                   >
                     <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      editNote(note);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-blue-600"
+                  >
+                    <Edit className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -539,7 +593,9 @@ For example:
               </div>
               
               <div className="min-h-24">
-                <p className="text-muted-foreground text-sm line-clamp-3">{note.content}</p>
+                <div className="text-muted-foreground text-sm line-clamp-3 prose prose-sm max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+                </div>
               </div>
               
               <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-4">
@@ -552,11 +608,11 @@ For example:
             </div>
           </Card>
         ))}
-      </div>
+          </div>
 
-      {/* Notes Stats */}
-      <Card className="p-6 clay-card border-0">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Notes Stats */}
+          <Card className="p-6 clay-card border-0">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="text-center">
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mx-auto mb-2">
               <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -587,9 +643,11 @@ For example:
             </div>
             <p className="text-2xl text-foreground">Daily</p>
             <p className="text-muted-foreground text-sm">Study Habit</p>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+        </>
+      )}
     </div>
   );
 }

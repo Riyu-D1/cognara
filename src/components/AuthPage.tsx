@@ -104,7 +104,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
             <BookOpen className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
-            Cognara
+            StudyNet
           </h1>
           <p className="text-gray-600">
             {isSignUp ? 'Create your account to get started' : 'Welcome back! Sign in to continue'}

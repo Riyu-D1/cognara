@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import { SettingsProvider } from './components/SettingsContext';
+import { StudyMaterialsProvider } from './components/StudyMaterialsContext';
 import { LandingPage } from './components/LandingPage';
 import { AboutPage } from './components/AboutPage';
 import { AuthPage } from './components/AuthPage';
@@ -155,37 +156,39 @@ function AppContent() {
   if (user && hasAccessedApp) {
     return (
       <SettingsProvider>
-        <div className="min-h-screen bg-background flex">
-          <Sidebar 
-            currentScreen={currentScreen} 
-            onNavigate={setCurrentScreen} 
-            userName={user?.name || user?.email?.split('@')[0] || 'User'} 
-          />
-          <main className="flex-1 ml-64">
-            {currentScreen === 'dashboard' && (
-              <Dashboard 
-                userName={user?.name || user?.email?.split('@')[0] || 'User'} 
-                onNavigate={setCurrentScreen} 
-              />
-            )}
-            {currentScreen === 'notes' && <NotesPage key="notes-page" onNavigate={setCurrentScreen} />}
-            {currentScreen === 'flashcards' && <FlashcardsPage key="flashcards-page" onNavigate={setCurrentScreen} />}
-            {currentScreen === 'quiz' && <QuizPage key="quiz-page" onNavigate={setCurrentScreen} />}
-            {currentScreen === 'ai' && <AIPage key="ai-page" onNavigate={setCurrentScreen} />}
-            {currentScreen === 'social' && <SocialPage key="social-page" onNavigate={setCurrentScreen} />}
-            {currentScreen === 'calendar' && <CalendarPage key="calendar-page" onNavigate={setCurrentScreen} />}
-            {currentScreen === 'settings' && (
-              <SettingsPage 
-                userName={user?.name || user?.email?.split('@')[0] || 'User'} 
-                userEmail={user?.email || 'user@example.com'}
-                userAvatar={user?.avatar_url || undefined}
-                authProvider={user?.provider || 'email'}
-                onLogout={handleLogout} 
-              />
-            )}
-          </main>
-          <Toaster />
-        </div>
+        <StudyMaterialsProvider>
+          <div className="min-h-screen bg-background flex">
+            <Sidebar 
+              currentScreen={currentScreen} 
+              onNavigate={setCurrentScreen} 
+              userName={user?.name || user?.email?.split('@')[0] || 'User'} 
+            />
+            <main className="flex-1 ml-64">
+              {currentScreen === 'dashboard' && (
+                <Dashboard 
+                  userName={user?.name || user?.email?.split('@')[0] || 'User'} 
+                  onNavigate={setCurrentScreen} 
+                />
+              )}
+              {currentScreen === 'notes' && <NotesPage key="notes-page" onNavigate={setCurrentScreen} />}
+              {currentScreen === 'flashcards' && <FlashcardsPage key="flashcards-page" onNavigate={setCurrentScreen} />}
+              {currentScreen === 'quiz' && <QuizPage key="quiz-page" onNavigate={setCurrentScreen} />}
+              {currentScreen === 'ai' && <AIPage key="ai-page" onNavigate={setCurrentScreen} />}
+              {currentScreen === 'social' && <SocialPage key="social-page" onNavigate={setCurrentScreen} />}
+              {currentScreen === 'calendar' && <CalendarPage key="calendar-page" onNavigate={setCurrentScreen} />}
+              {currentScreen === 'settings' && (
+                <SettingsPage 
+                  userName={user?.name || user?.email?.split('@')[0] || 'User'} 
+                  userEmail={user?.email || 'user@example.com'}
+                  userAvatar={user?.avatar_url || undefined}
+                  authProvider={user?.provider || 'email'}
+                  onLogout={handleLogout} 
+                />
+              )}
+            </main>
+            <Toaster />
+          </div>
+        </StudyMaterialsProvider>
       </SettingsProvider>
     );
   }

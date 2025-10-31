@@ -9,6 +9,15 @@ import { AIConnectionTest } from './AIConnectionTest';
 import { hybridSyncService } from '../services/hybridSync';
 import { aiChatsService } from '../services/database';
 import { 
+  loadAllStudyMaterials, 
+  formatStudyMaterialsForAI, 
+  getAllSubjects, 
+  filterMaterialsBySubject,
+  type StudyMaterialContext,
+  type SelectedMaterials,
+  type FormattedContext
+} from '../services/studyContext';
+import { 
   Bot, 
   MessageCircle, 
   Send,
@@ -23,7 +32,9 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  BookOpen,
+  Zap
 } from 'lucide-react';
 
 interface Message {
@@ -46,6 +57,7 @@ export default function AITest() {
   const [currentMessage, setCurrentMessage] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const [currentChat, setCurrentChat] = useState<Chat>({
     id: '1',
     title: 'New Chat',
@@ -62,17 +74,95 @@ export default function AITest() {
   // Wait for component to be ready before loading chats from localStorage
   const [savedChats, setSavedChats] = useState<Chat[]>([]);
   const [chatsReady, setChatsReady] = useState(false);
+  
+  // Study Material Context State
+  const [studyMaterials, setStudyMaterials] = useState<StudyMaterialContext | null>(null);
+  const [contextEnabled, setContextEnabled] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
+  const [contextSummary, setContextSummary] = useState<string>('');
+  const [loadingContext, setLoadingContext] = useState(false);
 
   useEffect(() => {
     // Wait for hybridSync to be ready before loading chats
     if (hybridSyncService.isReady()) {
       loadChatsFromStorage();
+      loadStudyMaterialsContext(); // Load study materials for context
+      loadDraftMessages(); // Load draft messages
     } else {
       hybridSyncService.onReady(() => {
         loadChatsFromStorage();
+        loadStudyMaterialsContext(); // Load study materials for context
+        loadDraftMessages(); // Load draft messages
       });
     }
   }, []);
+  
+  // Load draft messages from localStorage
+  const loadDraftMessages = () => {
+    try {
+      const draftMessage = localStorage.getItem('studyflow-ai-draft-message');
+      const draftYoutubeUrl = localStorage.getItem('studyflow-ai-draft-youtube');
+      
+      if (draftMessage) {
+        setCurrentMessage(draftMessage);
+      }
+      if (draftYoutubeUrl) {
+        setYoutubeUrl(draftYoutubeUrl);
+      }
+      
+      setDraftLoaded(true);
+    } catch (error) {
+      console.error('Error loading draft messages:', error);
+      setDraftLoaded(true);
+    }
+  };
+  
+  // Auto-save draft message when typing
+  useEffect(() => {
+    if (draftLoaded) {
+      if (currentMessage.trim()) {
+        localStorage.setItem('studyflow-ai-draft-message', currentMessage);
+      } else {
+        localStorage.removeItem('studyflow-ai-draft-message');
+      }
+    }
+  }, [currentMessage, draftLoaded]);
+  
+  // Auto-save draft YouTube URL when typing
+  useEffect(() => {
+    if (draftLoaded) {
+      if (youtubeUrl.trim()) {
+        localStorage.setItem('studyflow-ai-draft-youtube', youtubeUrl);
+      } else {
+        localStorage.removeItem('studyflow-ai-draft-youtube');
+      }
+    }
+  }, [youtubeUrl, draftLoaded]);
+  
+  // Load study materials for context-aware AI
+  const loadStudyMaterialsContext = async () => {
+    try {
+      setLoadingContext(true);
+      console.log('📚 Loading study materials for AI context...');
+      const materials = await loadAllStudyMaterials();
+      setStudyMaterials(materials);
+      
+      // Get available subjects
+      const subjects = getAllSubjects(materials);
+      setAvailableSubjects(subjects);
+      
+      // Create summary
+      const context = formatStudyMaterialsForAI(materials);
+      setContextSummary(context.summary);
+      
+      console.log('✅ Study materials loaded:', context.summary);
+    } catch (error) {
+      console.error('❌ Error loading study materials for context:', error);
+    } finally {
+      setLoadingContext(false);
+    }
+  };
 
   const loadChatsFromStorage = () => {
     try {
@@ -151,14 +241,29 @@ export default function AITest() {
       messages: [...prev.messages, userMessage]
     }));
     setCurrentMessage('');
+    // Clear the draft from localStorage when message is sent
+    localStorage.removeItem('studyflow-ai-draft-message');
     setLoading(true);
 
     try {
       console.log('Sending message to AI:', userMessage.text);
       
-      // Use the OpenRouter-based AI service
+      // Prepare study material context if enabled
+      let studyContext: string | undefined = undefined;
+      if (contextEnabled && studyMaterials) {
+        const selectedMaterials = selectedSubject === 'all' 
+          ? undefined 
+          : filterMaterialsBySubject(studyMaterials, selectedSubject);
+        
+        const formattedContext = formatStudyMaterialsForAI(studyMaterials, selectedMaterials);
+        studyContext = formattedContext.detailedContent;
+        
+        console.log(`📚 Using study context: ${formattedContext.summary}`);
+      }
+      
+      // Use the OpenRouter-based AI service with optional study context
       const { chatWithAI } = await import('../services/ai');
-      const text = await chatWithAI(userMessage.text);
+      const text = await chatWithAI(userMessage.text, studyContext);
       
       console.log('AI response received:', text.substring(0, 100) + '...');
 
@@ -207,14 +312,17 @@ export default function AITest() {
       ...prev,
       messages: [...prev.messages, userMessage]
     }));
+    const videoUrlToProcess = youtubeUrl; // Save before clearing
     setYoutubeUrl('');
+    // Clear the draft from localStorage when video URL is sent
+    localStorage.removeItem('studyflow-ai-draft-youtube');
     setLoading(true);
 
     try {
-      console.log('Processing YouTube video:', youtubeUrl);
+      console.log('Processing YouTube video:', videoUrlToProcess);
       
       // Extract video ID from URL
-      const videoId = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+      const videoId = videoUrlToProcess.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
       if (!videoId) {
         throw new Error('Invalid YouTube URL format');
       }
@@ -253,7 +361,7 @@ export default function AITest() {
       
       const prompt = `Analyze this YouTube video and create comprehensive study content:
 
-Video URL: ${youtubeUrl}
+Video URL: ${videoUrlToProcess}
 Title: ${videoTitle}
 ${videoDescription ? `Description: ${videoDescription}` : ''}
 
@@ -575,6 +683,84 @@ Please provide practical, actionable advice for studying from this video format.
             </Button>
           </div>
         </Card>
+        
+        {/* Study Material Context Controls */}
+        {viewMode === 'chat' && studyMaterials && (
+          <Card className="p-4 clay-card border-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Button
+                  onClick={() => setContextEnabled(!contextEnabled)}
+                  variant={contextEnabled ? 'default' : 'outline'}
+                  size="sm"
+                  className={contextEnabled ? 'clay-button bg-gradient-to-r from-primary to-primary-hover text-primary-foreground rounded-xl border-0' : 'rounded-xl clay-input'}
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  {contextEnabled ? 'Context: ON' : 'Context: OFF'}
+                </Button>
+                
+                {contextEnabled && availableSubjects.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">Filter by:</span>
+                    <select
+                      value={selectedSubject}
+                      onChange={(e) => setSelectedSubject(e.target.value)}
+                      className="clay-input text-sm rounded-lg px-3 py-1 border-0"
+                    >
+                      <option value="all">All Materials</option>
+                      {availableSubjects.map(subject => (
+                        <option key={subject} value={subject}>{subject}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              
+              <Button
+                onClick={loadStudyMaterialsContext}
+                variant="ghost"
+                size="sm"
+                disabled={loadingContext}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {loadingContext ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-1" />
+                    Refresh
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {contextEnabled && contextSummary && (
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <BookOpen className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-foreground font-medium">AI has access to:</p>
+                    <p className="text-sm text-muted-foreground mt-1">{contextSummary}</p>
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      💡 The AI can now answer questions specifically about your study materials!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {contextEnabled && !contextSummary && (
+              <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-start space-x-2">
+                  <BookOpen className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    No study materials found. Create notes, flashcards, or quizzes to enable context-aware AI!
+                  </p>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* Chat Messages */}
         <Card className="p-6 clay-card border-0">
@@ -586,8 +772,8 @@ Please provide practical, actionable advice for studying from this video format.
               >
                 <div className="flex items-start space-x-3 max-w-lg">
                   {message.sender === 'ai' && (
-                    <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary-hover rounded-full flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-4 h-4 text-primary-foreground" />
+                    <div className={`w-8 h-8 ${contextEnabled ? 'bg-gradient-to-r from-purple-500 to-primary' : 'bg-gradient-to-r from-primary to-primary-hover'} rounded-full flex items-center justify-center flex-shrink-0`}>
+                      {contextEnabled ? <Brain className="w-4 h-4 text-primary-foreground" /> : <Bot className="w-4 h-4 text-primary-foreground" />}
                     </div>
                   )}
                   
@@ -600,6 +786,12 @@ Please provide practical, actionable advice for studying from this video format.
                   >
                     <div className="flex items-center space-x-2 mb-1">
                       {message.type && getMessageIcon(message.type)}
+                      {message.sender === 'ai' && contextEnabled && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Zap className="w-3 h-3 mr-1" />
+                          Context-Aware
+                        </Badge>
+                      )}
                       <span className="text-xs opacity-70">
                         {message.timestamp.toLocaleTimeString()}
                       </span>

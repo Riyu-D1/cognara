@@ -5,7 +5,6 @@ interface Note {
   title: string;
   content: string;
   subject: string;
-  tags: string[];
   lastModified: string;
   wordCount: number;
   db_id?: string; // Supabase UUID
@@ -60,7 +59,6 @@ export class NotesSync {
         title: dbNote.title,
         content: dbNote.content,
         subject: dbNote.subject || 'General',
-        tags: dbNote.tags || [],
         wordCount: dbNote.word_count || 0,
         lastModified: dbNote.updated_at || new Date().toISOString()
       }));
@@ -105,7 +103,6 @@ export class NotesSync {
           title: note.title,
           content: note.content,
           subject: note.subject,
-          tags: note.tags,
           word_count: note.wordCount,
           updated_at: new Date().toISOString()
         };

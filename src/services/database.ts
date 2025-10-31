@@ -6,7 +6,6 @@ export interface Note {
   title: string;
   content: string;
   subject?: string;
-  tags: string[];
   word_count?: number;
   created_at?: string;
   updated_at?: string;
@@ -100,7 +99,6 @@ export const notesService = {
           title: note.title,
           content: note.content,
           subject: note.subject,
-          tags: note.tags,
           word_count: note.word_count || note.content.split(' ').length
         }])
         .select()
@@ -127,7 +125,6 @@ export const notesService = {
           title: updates.title,
           content: updates.content,
           subject: updates.subject,
-          tags: updates.tags,
           word_count: updates.content ? updates.content.split(' ').length : undefined
         })
         .eq('id', noteId)
@@ -690,7 +687,6 @@ export const syncLocalStorageToDatabase = async () => {
           title: note.title,
           content: note.content,
           subject: note.subject,
-          tags: note.tags || [],
           word_count: note.wordCount
         });
       }

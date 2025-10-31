@@ -9,6 +9,7 @@ interface GenerateContentOptions {
   content: string;
   contentType: 'notes' | 'flashcards' | 'quiz' | 'chat';
   additionalContext?: string;
+  studyMaterialContext?: string; // Optional: User's study materials for context-aware responses
 }
 
 interface FlashcardGeneration {
@@ -162,7 +163,8 @@ export async function generateContent({
   sourceType, 
   content, 
   contentType,
-  additionalContext = ''
+  additionalContext = '',
+  studyMaterialContext = ''
 }: GenerateContentOptions): Promise<AIResponse> {
   const apiKey = import.meta.env.VITE_MISTRAL_API_KEY;
   
@@ -177,7 +179,7 @@ export async function generateContent({
   // Retry logic for API calls
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const prompt = buildPrompt(contentType, sourceType, content, additionalContext);
+      const prompt = buildPrompt(contentType, sourceType, content, additionalContext, studyMaterialContext);
       
       console.log(`Generating ${contentType} content using OpenRouter (attempt ${attempt}/${MAX_RETRIES})...`);
       
@@ -250,12 +252,15 @@ export async function generateContent({
 }
 
 // Helper function to build prompts based on content type
-function buildPrompt(contentType: string, sourceType: string, content: string, additionalContext: string): string {
+function buildPrompt(contentType: string, sourceType: string, content: string, additionalContext: string, studyMaterialContext: string = ''): string {
   let prompt = '';
+  
+  // Add study material context at the beginning if provided (for context-aware responses)
+  const contextPrefix = studyMaterialContext ? `## User's Study Materials (for context)\n${studyMaterialContext}\n\n` : '';
   
   switch (contentType) {
     case 'notes':
-      prompt = `Please analyze this ${sourceType} content and create comprehensive, well-structured study notes. 
+      prompt = `${contextPrefix}Please analyze this ${sourceType} content and create comprehensive, well-structured study notes. 
 
 Guidelines:
 - Create clear headings and subheadings
@@ -264,26 +269,28 @@ Guidelines:
 - Include examples where relevant
 - Make the notes easy to study from
 - Format as markdown
+${studyMaterialContext ? '- Connect concepts to the user\'s existing study materials when relevant' : ''}
 
 Content to analyze:
 ${content}`;
       break;
       
     case 'flashcards':
-      prompt = `Create study flashcards from this ${sourceType} content. Generate 5-10 flashcards that test key concepts and important information.
+      prompt = `${contextPrefix}Create study flashcards from this ${sourceType} content. Generate 5-10 flashcards that test key concepts and important information.
 
 Format each flashcard as:
 Q: [Clear, specific question]
 A: [Concise, accurate answer]
 
 Make sure questions test understanding, not just memorization. Include concepts, definitions, processes, and key facts.
+${studyMaterialContext ? 'Consider the user\'s existing study materials and create flashcards that complement them.' : ''}
 
 Content to analyze:
 ${content}`;
       break;
       
     case 'quiz':
-      prompt = `Generate a multiple choice quiz based on this ${sourceType} content. Create 5-8 questions that test comprehension and key concepts.
+      prompt = `${contextPrefix}Generate a multiple choice quiz based on this ${sourceType} content. Create 5-8 questions that test comprehension and key concepts.
 
 Format each question as:
 1. [Question text]
@@ -294,21 +301,39 @@ D) [Option 4]
 *[Mark the correct answer with an asterisk]
 
 Focus on testing understanding of main concepts, not trivial details.
+${studyMaterialContext ? 'Consider the user\'s existing study materials and create questions that reinforce key topics.' : ''}
 
 Content to analyze:
 ${content}`;
       break;
       
     case 'chat':
-      prompt = `You are a helpful AI study assistant for students. Be friendly, encouraging, and provide clear explanations. Help with studying, concepts, homework questions, and study tips.
+      if (studyMaterialContext) {
+        prompt = `You are a helpful AI study assistant with access to the user's study materials. Use this context to provide personalized, relevant answers that reference their specific content.
+
+${studyMaterialContext}
+
+Guidelines:
+- Reference specific notes, flashcards, or quiz questions from their materials when relevant
+- Help them understand concepts from their own study content
+- Suggest connections between different materials they've created
+- Provide practice questions based on their content
+- Be encouraging and supportive
+
+User's Question: ${content}
+
+Provide a helpful response that uses their study materials for context when relevant:`;
+      } else {
+        prompt = `You are a helpful AI study assistant for students. Be friendly, encouraging, and provide clear explanations. Help with studying, concepts, homework questions, and study tips.
 
 User message: ${content}
 
 Respond helpfully and conversationally.`;
+      }
       break;
       
     default:
-      prompt = `Analyze this content and provide helpful information: ${content}`;
+      prompt = `${contextPrefix}Analyze this content and provide helpful information: ${content}`;
   }
 
   if (additionalContext) {
@@ -507,12 +532,13 @@ export async function preprocessContent(
 }
 
 // Simple chat function for direct AI interactions
-export async function chatWithAI(message: string): Promise<string> {
+export async function chatWithAI(message: string, studyMaterialContext?: string): Promise<string> {
   try {
     const response = await generateContent({
       sourceType: 'text',
       content: message,
-      contentType: 'chat'
+      contentType: 'chat',
+      studyMaterialContext
     });
     
     return response.chat || 'Sorry, I could not generate a response.';

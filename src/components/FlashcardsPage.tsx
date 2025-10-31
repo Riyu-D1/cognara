@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FlashcardsGrid } from './flashcards/FlashcardsGrid';
 import { FlashcardsStudy } from './flashcards/FlashcardsStudy';
 import { FlashcardsCreate } from './flashcards/FlashcardsCreate';
+import LoadingAnimations from './LoadingAnimations';
 import { mockFlashcardDecks } from '../utils/studyConstants';
 import { Screen } from '../utils/constants';
-import { hybridSyncService } from '../services/hybridSync';
+import { useStudyMaterials } from './StudyMaterialsContext';
 import { flashcardActions } from '../services/flashcardActions';
 
 interface FlashcardsPageProps {
@@ -21,30 +22,28 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   const [showManualInput, setShowManualInput] = useState(false);
   
 
-  // Wait for hybridSyncService to be ready before loading decks from localStorage
-  const [savedDecks, setSavedDecks] = useState<any[]>([]);
-  const [decksReady, setDecksReady] = useState(false);
+  // Use centralized study materials context
+  const { flashcards: savedDecks, setFlashcards: setSavedDecks, isLoading, isReady } = useStudyMaterials();
+  const [showLoading, setShowLoading] = useState(false);
 
+  // Show loading only if context is still loading and it takes >300ms
   useEffect(() => {
-    hybridSyncService.onReady(() => {
-      try {
-        const storedDecks = localStorage.getItem('studyflow-flashcards');
-        setSavedDecks(storedDecks ? JSON.parse(storedDecks) : mockFlashcardDecks);
-      } catch (error) {
-        console.error('❌ FlashcardsPage: Error loading flashcards from localStorage:', error);
-        setSavedDecks(mockFlashcardDecks);
-      }
-      setDecksReady(true);
-    });
-  }, []);
-
-
-  // Save flashcards using hybrid sync (localStorage + database)
-  useEffect(() => {
-    if (decksReady) {
-      hybridSyncService.saveData('studyflow-flashcards', savedDecks);
+    let loadingTimer: NodeJS.Timeout | null = null;
+    
+    if (isLoading) {
+      loadingTimer = setTimeout(() => {
+        if (isLoading) {
+          setShowLoading(true);
+        }
+      }, 300);
+    } else {
+      setShowLoading(false);
     }
-  }, [savedDecks, decksReady]);
+
+    return () => {
+      if (loadingTimer) clearTimeout(loadingTimer);
+    };
+  }, [isLoading]);
 
   const getCurrentDeck = () => {
     if (selectedDeck === null) return null;
@@ -104,10 +103,14 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
       title: newSetTitle,
       cardCount: newCards.filter(card => card.front.trim() && card.back.trim()).length,
       subject: 'General', // Could be detected or selected
+      difficulty: 'Medium' as const,
+      description: '',
+      progress: 0,
       cards: newCards.filter(card => card.front.trim() && card.back.trim()).map((card, index) => ({
         id: index + 1,
         front: card.front.trim(),
         back: card.back.trim(),
+        isFlipped: false,
         mastered: false
       })),
       createdAt: 'Just now',
@@ -324,6 +327,14 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
         onBackToGrid={() => setViewMode('grid')}
         onNavigate={onNavigate}
       />
+    );
+  }
+
+  if (showLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <LoadingAnimations variant="both" ariaLabel="Loading your flashcards" />
+      </div>
     );
   }
 

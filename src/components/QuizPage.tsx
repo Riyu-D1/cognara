@@ -4,7 +4,8 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { ContentInputOptions } from './ContentInputOptions';
-import { hybridSyncService } from '../services/hybridSync';
+import LoadingAnimations from './LoadingAnimations';
+import { useStudyMaterials } from './StudyMaterialsContext';
 import { quizzesService } from '../services/database';
 import { 
   CheckCircle, 
@@ -69,30 +70,29 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   }]);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
-  // Wait for hybridSyncService to be ready before loading quizzes from localStorage
-  const [savedQuizzes, setSavedQuizzes] = useState<{id: number; title: string; questions: Question[]; createdAt: string}[]>([]);
-  const [quizzesReady, setQuizzesReady] = useState(false);
+  // Use centralized study materials context
+  const { quizzes: savedQuizzes, setQuizzes: setSavedQuizzes, isLoading, isReady } = useStudyMaterials();
+  const [showLoading, setShowLoading] = useState(false);
 
+  // Show loading only if context is still loading and it takes >300ms
   useEffect(() => {
-    hybridSyncService.onReady(() => {
-      try {
-        const storedQuizzes = localStorage.getItem('studyflow-quizzes');
-        setSavedQuizzes(storedQuizzes ? JSON.parse(storedQuizzes) : []);
-      } catch (error) {
-        console.error('Error loading quizzes from localStorage:', error);
-        setSavedQuizzes([]);
-      }
-      setQuizzesReady(true);
-    });
-  }, []);
-  const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
-
-  // Save quizzes using hybrid sync (localStorage + database)
-  useEffect(() => {
-    if (quizzesReady) {
-      hybridSyncService.saveData('studyflow-quizzes', savedQuizzes);
+    let loadingTimer: NodeJS.Timeout | null = null;
+    
+    if (isLoading) {
+      loadingTimer = setTimeout(() => {
+        if (isLoading) {
+          setShowLoading(true);
+        }
+      }, 300);
+    } else {
+      setShowLoading(false);
     }
-  }, [savedQuizzes, quizzesReady]);
+
+    return () => {
+      if (loadingTimer) clearTimeout(loadingTimer);
+    };
+  }, [isLoading]);
+  const [selectedQuizId, setSelectedQuizId] = useState<number | null>(null);
 
   // Initial quiz questions
   const questions: Question[] = [
@@ -317,7 +317,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
       
       // If the quiz has a database ID, delete it from database too
       const quizInStorage = dataStr ? JSON.parse(dataStr).find((q: any) => q.id === quizId) : null;
-      if (quizInStorage?.db_id && hybridSyncService.getSyncStatus().isOnline) {
+      if (quizInStorage?.db_id && navigator.onLine) {
         console.log(`☁️ Deleting quiz ${quizInStorage.db_id} from database...`);
         const dbSuccess = await quizzesService.deleteQuiz(quizInStorage.db_id);
         if (dbSuccess) {
@@ -706,6 +706,14 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   }
 
   if (viewMode === 'list') {
+    if (showLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+          <LoadingAnimations variant="both" ariaLabel="Loading your quizzes" />
+        </div>
+      );
+    }
+
     const getDifficultyColor = (difficulty: string) => {
       switch (difficulty) {
         case 'Easy': return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200';
