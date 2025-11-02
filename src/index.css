@@ -7621,6 +7621,15 @@ html {
   }
 }
 
+/* Typewriter Container - positions the typewriter above text animation */
+.typewriter-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+}
+
 /* ===== Loading Animations (Uiverse.io) ===== */
 /* From Uiverse.io by Nawsome - 3D boxes animation */
 .boxes {
@@ -7880,11 +7889,12 @@ html {
 /* Container helpers for loading animations */
 .loading-animations {
   display: flex;
-  gap: 18px;
+  flex-direction: column;
+  gap: 8px;
   align-items: center;
   justify-content: center;
   padding: 18px;
-  min-height: 120px;
+  min-height: 180px;
 }
 
 /* Respect user prefers-reduced-motion */
@@ -7892,7 +7902,11 @@ html {
   .boxes,
   .boxes .box,
   .boxes .box > div,
-  .word {
+  .word,
+  .typewriter,
+  .typewriter .slide,
+  .typewriter .paper,
+  .typewriter .keyboard:after {
     animation: none !important;
     transition: none !important;
   }

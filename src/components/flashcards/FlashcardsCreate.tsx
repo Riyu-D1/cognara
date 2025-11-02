@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { ContentInputOptions } from '../ContentInputOptions';
+import LoadingAnimations from '../LoadingAnimations';
 import { Plus, Save, X, Trash2, Keyboard } from 'lucide-react';
 
 interface FlashcardsCreateProps {
@@ -11,6 +12,7 @@ interface FlashcardsCreateProps {
   newCards: {front: string; back: string}[];
   showContentOptions: boolean;
   showManualInput: boolean;
+  isProcessing?: boolean;
   onTitleChange: (title: string) => void;
   onCardChange: (index: number, field: 'front' | 'back', value: string) => void;
   onAddCard: () => void;
@@ -27,6 +29,7 @@ export function FlashcardsCreate({
   newCards,
   showContentOptions,
   showManualInput,
+  isProcessing = false,
   onTitleChange,
   onCardChange,
   onAddCard,
@@ -104,6 +107,14 @@ export function FlashcardsCreate({
                 />
               </div>
             </Card>
+
+            {/* Processing Animation */}
+            {isProcessing && (
+              <Card className="p-6 clay-card border-0">
+                <LoadingAnimations variant="typewriter" ariaLabel="AI is generating your flashcards" />
+                <p className="text-center text-primary mt-4">AI is analyzing your content and creating flashcards...</p>
+              </Card>
+            )}
 
             {/* Flashcards */}
             <div className="space-y-4">

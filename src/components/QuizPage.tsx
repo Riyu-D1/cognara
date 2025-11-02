@@ -70,6 +70,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
   }]);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   // Use centralized study materials context
   const { quizzes: savedQuizzes, setQuizzes: setSavedQuizzes, isLoading, isReady } = useStudyMaterials();
   const [showLoading, setShowLoading] = useState(false);
@@ -347,6 +348,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
     console.log('Content selected for quiz:', type, content);
     setShowContentOptions(false);
     setShowManualInput(true);
+    setIsProcessing(true);
     
     if (type === 'youtube') {
       try {
@@ -393,6 +395,8 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
             explanation: 'The video primarily covers: ' + videoInfo.title
           }
         ]);
+        
+        setIsProcessing(false);
 
       } catch (error) {
         console.error('Error processing YouTube video for quiz:', error);
@@ -404,6 +408,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
             explanation: 'There was an issue processing the YouTube video.'
           }
         ]);
+        setIsProcessing(false);
       }
     } else if (type === 'file') {
       const fileNames = content.files.map((file: File) => file.name).join(', ');
@@ -416,6 +421,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
           explanation: 'You can create quiz questions manually for now.'
         }
       ]);
+      setIsProcessing(false);
     }
   };
 
@@ -607,6 +613,14 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
                 </div>
               </Card>
 
+              {/* Processing Animation */}
+              {isProcessing && (
+                <Card className="p-6 clay-card border-0">
+                  <LoadingAnimations variant="typewriter" ariaLabel="AI is generating your quiz questions" />
+                  <p className="text-center text-primary mt-4">AI is analyzing your content and creating quiz questions...</p>
+                </Card>
+              )}
+
               {/* Questions */}
               <div className="space-y-6">
                 {newQuizQuestions.map((question, qIndex) => (
@@ -709,7 +723,7 @@ export function QuizPage({ onNavigate }: QuizPageProps) {
     if (showLoading) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-background">
-          <LoadingAnimations variant="both" ariaLabel="Loading your quizzes" />
+          <LoadingAnimations variant="words" ariaLabel="Loading your quizzes" />
         </div>
       );
     }

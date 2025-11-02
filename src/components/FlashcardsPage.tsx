@@ -20,6 +20,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
   const [newCards, setNewCards] = useState<{front: string; back: string}[]>([{front: '', back: ''}]);
   const [showContentOptions, setShowContentOptions] = useState(true);
   const [showManualInput, setShowManualInput] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
 
   // Use centralized study materials context
@@ -157,6 +158,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
     console.log('Content selected for flashcards:', type, content);
     setShowContentOptions(false);
     setShowManualInput(true);
+    setIsProcessing(true);
     
     if (type === 'youtube') {
       try {
@@ -192,12 +194,15 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
           { front: 'Main Topic', back: 'Key concepts from: ' + videoInfo.title },
           { front: 'Key Concept', back: 'Important information from the video content' }
         ]);
+        
+        setIsProcessing(false);
 
       } catch (error) {
         console.error('Error processing YouTube video for flashcards:', error);
         setNewCards([
           { front: '❌ Error Processing Video', back: 'Please check the URL and try again, or create flashcards manually.' }
         ]);
+        setIsProcessing(false);
       }
     } else if (type === 'file') {
       const fileNames = content.files.map((file: File) => file.name).join(', ');
@@ -205,6 +210,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
       setNewCards([
         { front: '📄 File Processing', back: 'File processing will be implemented soon. You can create flashcards manually for now.' }
       ]);
+      setIsProcessing(false);
     }
   };
 
@@ -290,6 +296,7 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
         newCards={newCards}
         showContentOptions={showContentOptions}
         showManualInput={showManualInput}
+        isProcessing={isProcessing}
         onTitleChange={setNewSetTitle}
         onCardChange={updateCard}
         onAddCard={addNewCard}
@@ -330,15 +337,13 @@ export function FlashcardsPage({ onNavigate }: FlashcardsPageProps) {
     );
   }
 
-  if (showLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <LoadingAnimations variant="both" ariaLabel="Loading your flashcards" />
+    if (showLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+        <LoadingAnimations variant="words" ariaLabel="Loading your flashcards" />
       </div>
     );
-  }
-
-  return (
+  }  return (
     <FlashcardsGrid
       decks={savedDecks}
       onStartStudy={startStudyMode}

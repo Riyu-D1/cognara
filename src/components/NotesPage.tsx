@@ -111,11 +111,18 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
         // Use AI to generate notes from video description
         const { generateContent } = await import('../services/ai');
         
+        // Build context based on note length preference
+        const lengthInstructions = {
+          short: 'Create brief, concise notes (1-2 paragraphs) focusing only on the most essential key points.',
+          medium: 'Create balanced study notes (2-4 paragraphs) covering main concepts with moderate detail.',
+          long: 'Create comprehensive, detailed study notes (5+ paragraphs) with thorough explanations and examples.'
+        };
+        
         const aiResponse = await generateContent({
           sourceType: 'youtube',
           content: `Title: ${videoInfo.title}\nDescription: ${videoInfo.description}\nURL: ${content.url}`,
           contentType: 'notes',
-          additionalContext: 'Create comprehensive study notes with clear headings and structure'
+          additionalContext: `${lengthInstructions[noteLength]} Use clear headings and structure with markdown formatting.`
         });
 
         const aiNotes = aiResponse.notes || 'Failed to generate notes from video content.';
@@ -332,6 +339,53 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
                 acceptedTypes={['.pdf', '.docx', '.txt', '.pptx', '.md']}
               />
               
+              {/* Note Length Selector */}
+              <div className="mt-6 pt-6 border-t border-border">
+                <label className="block text-sm font-medium text-foreground mb-3">
+                  Note Length Preference
+                </label>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setNoteLength('short')}
+                    variant={noteLength === 'short' ? 'default' : 'outline'}
+                    className={`flex-1 rounded-xl ${
+                      noteLength === 'short' 
+                        ? 'clay-button bg-gradient-to-r from-primary to-primary-hover text-primary-foreground border-0' 
+                        : 'clay-input'
+                    }`}
+                  >
+                    Short
+                  </Button>
+                  <Button
+                    onClick={() => setNoteLength('medium')}
+                    variant={noteLength === 'medium' ? 'default' : 'outline'}
+                    className={`flex-1 rounded-xl ${
+                      noteLength === 'medium' 
+                        ? 'clay-button bg-gradient-to-r from-primary to-primary-hover text-primary-foreground border-0' 
+                        : 'clay-input'
+                    }`}
+                  >
+                    Medium
+                  </Button>
+                  <Button
+                    onClick={() => setNoteLength('long')}
+                    variant={noteLength === 'long' ? 'default' : 'outline'}
+                    className={`flex-1 rounded-xl ${
+                      noteLength === 'long' 
+                        ? 'clay-button bg-gradient-to-r from-primary to-primary-hover text-primary-foreground border-0' 
+                        : 'clay-input'
+                    }`}
+                  >
+                    Long
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {noteLength === 'short' && 'Quick summary with key points (1-2 paragraphs)'}
+                  {noteLength === 'medium' && 'Balanced notes with main concepts (2-4 paragraphs)'}
+                  {noteLength === 'long' && 'Comprehensive notes with details (5+ paragraphs)'}
+                </p>
+              </div>
+              
               <div className="mt-6 pt-6 border-t border-border">
                 <Button
                   onClick={() => {
@@ -480,10 +534,8 @@ For example:
           {/* Processing Animation */}
           {isProcessing && (showManualInput || !showContentOptions || viewMode === 'edit') && (
             <Card className="p-6 clay-card border-0">
-              <div className="flex items-center justify-center space-x-3">
-                <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div>
-                <p className="text-primary">AI is processing your notes...</p>
-              </div>
+              <LoadingAnimations variant="typewriter" ariaLabel="AI is generating your notes" />
+              <p className="text-center text-primary mt-4">AI is processing your content and generating notes...</p>
             </Card>
           )}
         </div>
@@ -516,8 +568,8 @@ For example:
 
       {/* Loading State */}
       {showLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <LoadingAnimations variant="both" ariaLabel="Loading your notes" />
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingAnimations variant="words" ariaLabel="Loading your notes" />
         </div>
       ) : (
         <>

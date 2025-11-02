@@ -1,13 +1,13 @@
 import React from 'react';
 
 type Props = {
-  variant?: 'both' | 'boxes' | 'words';
+  variant?: 'both' | 'boxes' | 'words' | 'typewriter';
   className?: string;
   ariaLabel?: string;
 };
 
 export default function LoadingAnimations({ 
-  variant = 'both', 
+  variant = 'typewriter', 
   className = '', 
   ariaLabel = 'Loading content' 
 }: Props) {
@@ -28,44 +28,29 @@ export default function LoadingAnimations({
 
   return (
     <div role="status" aria-live="polite" aria-label={ariaLabel} className={`loading-animations ${className}`}>
-      {(variant === 'both' || variant === 'boxes') && (
-        <div className="boxes" aria-hidden>
-          <div className="box">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-          <div className="box">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-          <div className="box">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-          <div className="box">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
+      {/* Typewriter animation on top */}
+      {(variant === 'typewriter' || variant === 'both') && (
+        <div className="typewriter-container" aria-hidden>
+          <div className="typewriter">
+            <div className="slide">
+              <i></i>
+            </div>
+            <div className="paper"></div>
+            <div className="keyboard"></div>
           </div>
         </div>
       )}
 
-      {(variant === 'both' || variant === 'words') && (
+      {/* Text flipping animation below */}
+      {(variant === 'typewriter' || variant === 'both' || variant === 'words') && (
         <div className="card" aria-hidden>
           <div className="loader">
             <div className="words" aria-hidden>
-              <span className="word">Restoring notes</span>
-              <span className="word">Loading content</span>
-              <span className="word">Preparing your session</span>
+              <span className="word">Analyzing content</span>
+              <span className="word">Generating notes</span>
+              <span className="word">Preparing your material</span>
               <span className="word">Almost ready</span>
-              <span className="word">Welcome back</span>
+              <span className="word">Just a moment</span>
             </div>
           </div>
         </div>
