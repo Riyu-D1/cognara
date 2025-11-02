@@ -88,6 +88,18 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
     setTimeout(() => setIsProcessing(false), 2000);
   };
 
+  const resetNoteForm = () => {
+    setNotes('');
+    setNoteTitle('');
+    setCurrentNoteId(null);
+    setSelectedNote(null);
+    setShowContentOptions(true);
+    setShowManualInput(false);
+    setIsEditingMode(false);
+    setIsProcessing(false);
+    setNoteLength('medium');
+  };
+
   const handleContentSelect = async (type: 'youtube' | 'file', content: any) => {
     console.log('Content selected:', type, content);
     setShowContentOptions(false);
@@ -321,7 +333,10 @@ export function NotesPage({ onNavigate }: NotesPageProps) {
             </p>
           </div>
           <Button 
-            onClick={() => setViewMode('list')}
+            onClick={() => {
+              resetNoteForm();
+              setViewMode('list');
+            }}
             variant="outline"
             className="rounded-xl clay-input"
           >
@@ -557,7 +572,10 @@ For example:
         
         <div className="flex items-center space-x-3">
           <Button 
-            onClick={() => setViewMode('create')}
+            onClick={() => {
+              resetNoteForm();
+              setViewMode('create');
+            }}
             className="clay-button bg-gradient-to-r from-primary to-primary-hover text-primary-foreground rounded-xl border-0"
           >
             <Plus className="w-4 h-4 mr-2" />
